@@ -1,39 +1,49 @@
 #!/usr/bin/env python3
-"""Score a driver's braking against a target lap, corner by corner.
+"""Score a driver's whole corner against a target lap — entry, brake hit,
+trail/release, apex speed, and exit throttle.
 
 Step 2 of the sim racing training app: turn the raw brake/throttle/speed/
-lap-distance traces from Step 1 (brake_trace.py) into per-corner braking
-scores and coaching feedback, comparing a user's lap against a target lap
-(a personal best, a provided baseline, or — paid tier — a fast coach lap).
+lap-distance traces from Step 1 (brake_trace.py) into per-corner scores and
+coaching feedback, comparing a user's lap against a target lap (a personal
+best, a provided baseline, or — paid tier — a fast coach lap).
 
-For each braking zone found in the user's lap, we detect a matching zone in
-the target lap and score six things:
+Each braking event in the user's lap anchors one "corner". For each corner
+found, we detect a matching corner in the target lap (by brake point) and
+score eleven things, grouped into five phases:
 
-    Initial hit:
-      - brake point       (lap distance where braking begins, vs target)
-      - time to peak       (seconds from brake point to peak pressure)
-      - peak pressure       (how hard, 0-1, vs target)
-    Release:
-      - release start point (lap distance where trail-off begins, vs target)
-      - smoothness           (re-presses / jerkiness during the release)
-      - release vs apex       (does release finish before/after the apex,
-                                relative to how the target does it)
+    Entry:
+      - entry speed          (speed carried to the brake point, vs target)
+    Brake hit:
+      - brake point           (lap distance where braking begins, vs target)
+      - time to peak           (seconds from brake point to peak pressure)
+      - peak pressure           (how hard, 0-1, vs target)
+    Trail / release:
+      - release start point     (lap distance where trail-off begins, vs target)
+      - release smoothness       (re-presses / jerkiness during the release)
+      - release vs apex           (does release finish before/after the apex,
+                                    relative to how the target does it)
+    Apex:
+      - apex speed                (minimum speed through the corner, vs target)
+    Exit:
+      - throttle pickup point      (lap distance of getting back on throttle)
+      - time to full throttle       (seconds from pickup to full throttle)
+      - exit smoothness              (lifts / jerkiness during the application)
 
 Each metric gets a 0-100 score (100 = matches the target within tolerance),
-combined into an overall per-zone score and a plain-English tip. Use --expert
-for the full numeric breakdown, --out to write a JSON report (always includes
-the raw per-zone trace, for a future detailed-trace UI), and --plot to save
-an annotated brake-trace comparison image.
+combined into an overall per-corner score and plain-English tips. Use
+--expert for the full numeric breakdown, --out to write a JSON report
+(always includes the raw per-corner trace, for a future detailed-trace UI),
+and --plot to save an annotated brake-trace comparison image.
 
 Usage:
     # Compare lap 4 of your session against lap 2 of a baseline/coach lap
-    python brake_scoring.py your_session.ibt --lap 4 --target baseline.ibt --target-lap 2
+    python corner_scoring.py your_session.ibt --lap 4 --target baseline.ibt --target-lap 2
 
     # Compare two laps within the same file (e.g. vs your own personal best)
-    python brake_scoring.py session.ibt --lap 4 --target-lap 2
+    python corner_scoring.py session.ibt --lap 4 --target-lap 2
 
     # Full numeric breakdown + annotated plot + JSON report for tooling
-    python brake_scoring.py session.ibt --lap 4 --target-lap 2 --expert --plot zones.png --out report.json
+    python corner_scoring.py session.ibt --lap 4 --target-lap 2 --expert --plot zones.png --out report.json
 """
 
 from __future__ import annotations
@@ -48,7 +58,9 @@ import matplotlib.pyplot as plt
 
 from brake_trace import LapData, load_ibt, split_into_laps
 
-# --- Brake zone detection -------------------------------------------------
+MS_TO_KMH = 3.6
+
+# --- Brake-zone detection (anchors each corner) ----------------------------
 
 START_THRESHOLD = 0.05       # brake input that counts as "on the brakes"
 END_THRESHOLD = 0.02         # brake input that counts as "off the brakes"
@@ -59,15 +71,23 @@ RELEASE_START_DROP_FLOOR = 0.03
 APEX_SEARCH_DISTANCE_M = 60.0    # how far past release-finish to look for the apex (min-speed point)
 REVERSAL_EPS = 0.01              # brake increase bigger than this during release counts as a "re-press"
 
+# --- Exit-throttle detection -------------------------------------------------
+
+THROTTLE_PICKUP_THRESHOLD = 0.15   # throttle input that counts as "back on the gas"
+FULL_THROTTLE_THRESHOLD = 0.95     # throttle input that counts as "at full throttle"
+EXIT_SEARCH_MAX_M = 300.0          # how far past the apex to look for the throttle application
+EXIT_REVERSAL_EPS = 0.03           # throttle drop bigger than this during application counts as a "lift"
+
 # --- Zone matching between user and target lap ----------------------------
 
-ZONE_MATCH_TOLERANCE_M = 120.0  # max distance between two zones' brake points to consider them "the same corner"
+ZONE_MATCH_TOLERANCE_M = 120.0  # max distance between two corners' brake points to consider them "the same corner"
 
 # --- Scoring tolerances/penalties ------------------------------------------
 # score = 100 within `tolerance` of target, then loses `penalty` points per
 # unit of extra deviation, floored at 0. Tuned so a "close, human" difference
 # stays near 100 and a clearly wrong technique drops toward 0.
 
+ENTRY_SPEED_TOLERANCE_KMH, ENTRY_SPEED_PENALTY = 2.0, 8.0
 BRAKE_POINT_TOLERANCE_M, BRAKE_POINT_PENALTY = 3.0, 4.0
 TIME_TO_PEAK_TOLERANCE_S, TIME_TO_PEAK_PENALTY = 0.05, 400.0
 PEAK_PRESSURE_TOLERANCE, PEAK_PRESSURE_PENALTY = 0.03, 300.0
@@ -75,15 +95,25 @@ RELEASE_START_TOLERANCE_M, RELEASE_START_PENALTY = 4.0, 3.0
 RELEASE_VS_APEX_TOLERANCE_M, RELEASE_VS_APEX_PENALTY = 3.0, 3.0
 ROUGHNESS_TOLERANCE, ROUGHNESS_PENALTY = 0.05, 250.0
 REVERSAL_PENALTY_PER_COUNT = 15.0
+APEX_SPEED_TOLERANCE_KMH, APEX_SPEED_PENALTY = 1.5, 10.0
+THROTTLE_PICKUP_TOLERANCE_M, THROTTLE_PICKUP_PENALTY = 4.0, 3.0
+TIME_TO_FULL_THROTTLE_TOLERANCE_S, TIME_TO_FULL_THROTTLE_PENALTY = 0.1, 200.0
+EXIT_ROUGHNESS_TOLERANCE, EXIT_ROUGHNESS_PENALTY = 0.05, 250.0
+EXIT_REVERSAL_PENALTY_PER_COUNT = 15.0
 
-# Relative importance of each metric in the overall zone score.
+# Relative importance of each metric in the overall corner score.
 METRIC_WEIGHTS = {
+    "entry_speed": 1.0,
     "brake_point": 1.0,
     "time_to_peak": 1.0,
     "peak_pressure": 1.0,
     "release_start": 1.0,
     "smoothness": 1.5,
     "release_vs_apex": 1.0,
+    "apex_speed": 1.5,
+    "throttle_pickup": 1.0,
+    "time_to_full_throttle": 1.0,
+    "exit_smoothness": 1.5,
 }
 
 TIP_SCORE_THRESHOLD = 90.0  # only surface a tip when a metric scores below this
@@ -100,6 +130,7 @@ class BrakeZone:
 @dataclass
 class ZoneFeatures:
     zone_index: int
+    entry_speed_kmh: float
     start_dist: float
     peak_dist: float
     peak_brake: float
@@ -107,16 +138,21 @@ class ZoneFeatures:
     release_start_dist: float
     release_finish_dist: float
     apex_dist: float
-    apex_speed: float
+    apex_speed_kmh: float
     release_vs_apex: float  # release_finish_dist - apex_dist
     reversal_count: int
     roughness: float
+    throttle_pickup_dist: float
+    time_to_full_throttle: float
+    exit_reversal_count: int
+    exit_roughness: float
     raw: dict = field(default_factory=dict)  # lap_dist/brake/throttle/speed slice for plotting/export
 
 
 @dataclass
 class MetricScore:
     key: str
+    phase: str
     label: str
     unit: str
     user_value: float
@@ -141,7 +177,7 @@ class LapScoreReport:
     target_label: str
     zone_scores: list
     unmatched_user_zones: list
-    overall_brake_score: float
+    overall_score: float
 
 
 def detect_brake_zones(lap: LapData) -> list:
@@ -200,17 +236,41 @@ def _find_apex(lap: LapData, zone: BrakeZone) -> tuple:
 
     window = range(zone.peak_idx, search_end + 1)
     apex_idx = min(window, key=lambda k: lap.speed[k])
-    return lap.lap_dist[apex_idx], lap.speed[apex_idx]
+    return apex_idx, lap.lap_dist[apex_idx], lap.speed[apex_idx]
 
 
-def extract_zone_features(lap: LapData, zone: BrakeZone, zone_index: int) -> ZoneFeatures:
+def _find_exit(lap: LapData, apex_idx: int, window_end_idx: int) -> tuple:
+    """Find where the driver gets back on throttle and where they reach full
+    throttle, searching from the apex up to `window_end_idx` (bounded by the
+    next corner's brake point, or a fixed max distance)."""
+    n = len(lap.throttle)
+    window_end_idx = min(window_end_idx, n - 1)
+
+    pickup_idx = window_end_idx
+    for k in range(apex_idx, window_end_idx + 1):
+        if lap.throttle[k] >= THROTTLE_PICKUP_THRESHOLD:
+            pickup_idx = k
+            break
+
+    full_idx = window_end_idx
+    for k in range(pickup_idx, window_end_idx + 1):
+        if lap.throttle[k] >= FULL_THROTTLE_THRESHOLD:
+            full_idx = k
+            break
+
+    return pickup_idx, full_idx
+
+
+def extract_zone_features(lap: LapData, zone: BrakeZone, zone_index: int, exit_window_end_idx: int) -> ZoneFeatures:
+    entry_speed_kmh = lap.speed[zone.start_idx] * MS_TO_KMH
     start_dist = lap.lap_dist[zone.start_idx]
     peak_dist = lap.lap_dist[zone.peak_idx]
     peak_brake = lap.brake[zone.peak_idx]
     time_to_peak = lap.session_time[zone.peak_idx] - lap.session_time[zone.start_idx]
     release_start_dist = lap.lap_dist[zone.release_start_idx]
     release_finish_dist = lap.lap_dist[zone.end_idx]
-    apex_dist, apex_speed = _find_apex(lap, zone)
+    apex_idx, apex_dist, apex_speed = _find_apex(lap, zone)
+    apex_speed_kmh = apex_speed * MS_TO_KMH
 
     release_brake = lap.brake[zone.peak_idx:zone.end_idx + 1]
     reversal_count = sum(
@@ -220,8 +280,21 @@ def extract_zone_features(lap: LapData, zone: BrakeZone, zone_index: int) -> Zon
     net_change = release_brake[0] - release_brake[-1] if release_brake else 0.0
     roughness = max(0.0, total_variation - net_change)
 
+    exit_window_end_idx = min(exit_window_end_idx, apex_idx + int(EXIT_SEARCH_MAX_M))
+    pickup_idx, full_idx = _find_exit(lap, apex_idx, max(exit_window_end_idx, apex_idx))
+    throttle_pickup_dist = lap.lap_dist[pickup_idx]
+    time_to_full_throttle = lap.session_time[full_idx] - lap.session_time[pickup_idx]
+
+    exit_throttle = lap.throttle[pickup_idx:full_idx + 1]
+    exit_reversal_count = sum(
+        1 for k in range(1, len(exit_throttle)) if exit_throttle[k - 1] - exit_throttle[k] > EXIT_REVERSAL_EPS
+    )
+    exit_total_variation = sum(abs(exit_throttle[k] - exit_throttle[k - 1]) for k in range(1, len(exit_throttle)))
+    exit_net_change = exit_throttle[-1] - exit_throttle[0] if exit_throttle else 0.0
+    exit_roughness = max(0.0, exit_total_variation - exit_net_change)
+
     pad_before = max(0, zone.start_idx - 5)
-    pad_after = min(len(lap.brake), zone.end_idx + 6)
+    pad_after = min(len(lap.brake), max(zone.end_idx, full_idx) + 6)
     raw = {
         "lap_dist": lap.lap_dist[pad_before:pad_after],
         "brake": lap.brake[pad_before:pad_after],
@@ -231,6 +304,7 @@ def extract_zone_features(lap: LapData, zone: BrakeZone, zone_index: int) -> Zon
 
     return ZoneFeatures(
         zone_index=zone_index,
+        entry_speed_kmh=entry_speed_kmh,
         start_dist=start_dist,
         peak_dist=peak_dist,
         peak_brake=peak_brake,
@@ -238,16 +312,25 @@ def extract_zone_features(lap: LapData, zone: BrakeZone, zone_index: int) -> Zon
         release_start_dist=release_start_dist,
         release_finish_dist=release_finish_dist,
         apex_dist=apex_dist,
-        apex_speed=apex_speed,
+        apex_speed_kmh=apex_speed_kmh,
         release_vs_apex=release_finish_dist - apex_dist,
         reversal_count=reversal_count,
         roughness=roughness,
+        throttle_pickup_dist=throttle_pickup_dist,
+        time_to_full_throttle=time_to_full_throttle,
+        exit_reversal_count=exit_reversal_count,
+        exit_roughness=exit_roughness,
         raw=raw,
     )
 
 
 def extract_all_zones(lap: LapData) -> list:
-    return [extract_zone_features(lap, zone, i) for i, zone in enumerate(detect_brake_zones(lap))]
+    zones = detect_brake_zones(lap)
+    features = []
+    for i, zone in enumerate(zones):
+        next_start_idx = zones[i + 1].start_idx if i + 1 < len(zones) else len(lap.brake) - 1
+        features.append(extract_zone_features(lap, zone, i, next_start_idx))
+    return features
 
 
 def match_zones(user_zones: list, target_zones: list) -> tuple:
@@ -284,22 +367,27 @@ def _score(diff: float, tolerance: float, penalty: float) -> float:
 def score_zone(user: ZoneFeatures, target: ZoneFeatures) -> ZoneScore:
     metrics = [
         MetricScore(
-            "brake_point", "Brake point", "m",
+            "entry_speed", "entry", "Entry speed", "km/h",
+            user.entry_speed_kmh, target.entry_speed_kmh, user.entry_speed_kmh - target.entry_speed_kmh,
+            _score(user.entry_speed_kmh - target.entry_speed_kmh, ENTRY_SPEED_TOLERANCE_KMH, ENTRY_SPEED_PENALTY),
+        ),
+        MetricScore(
+            "brake_point", "brake_hit", "Brake point", "m",
             user.start_dist, target.start_dist, user.start_dist - target.start_dist,
             _score(user.start_dist - target.start_dist, BRAKE_POINT_TOLERANCE_M, BRAKE_POINT_PENALTY),
         ),
         MetricScore(
-            "time_to_peak", "Time to peak pressure", "s",
+            "time_to_peak", "brake_hit", "Time to peak pressure", "s",
             user.time_to_peak, target.time_to_peak, user.time_to_peak - target.time_to_peak,
             _score(user.time_to_peak - target.time_to_peak, TIME_TO_PEAK_TOLERANCE_S, TIME_TO_PEAK_PENALTY),
         ),
         MetricScore(
-            "peak_pressure", "Peak brake pressure", "",
+            "peak_pressure", "brake_hit", "Peak brake pressure", "",
             user.peak_brake, target.peak_brake, user.peak_brake - target.peak_brake,
             _score(user.peak_brake - target.peak_brake, PEAK_PRESSURE_TOLERANCE, PEAK_PRESSURE_PENALTY),
         ),
         MetricScore(
-            "release_start", "Release start point", "m",
+            "release_start", "release", "Release start point", "m",
             user.release_start_dist, target.release_start_dist,
             user.release_start_dist - target.release_start_dist,
             _score(
@@ -308,7 +396,7 @@ def score_zone(user: ZoneFeatures, target: ZoneFeatures) -> ZoneScore:
             ),
         ),
         MetricScore(
-            "smoothness", "Release smoothness", "",
+            "smoothness", "release", "Release smoothness", "",
             user.roughness, 0.0, user.roughness,
             max(
                 0.0,
@@ -318,11 +406,44 @@ def score_zone(user: ZoneFeatures, target: ZoneFeatures) -> ZoneScore:
             ),
         ),
         MetricScore(
-            "release_vs_apex", "Release finish vs apex", "m",
+            "release_vs_apex", "release", "Release finish vs apex", "m",
             user.release_vs_apex, target.release_vs_apex, user.release_vs_apex - target.release_vs_apex,
             _score(
                 user.release_vs_apex - target.release_vs_apex,
                 RELEASE_VS_APEX_TOLERANCE_M, RELEASE_VS_APEX_PENALTY,
+            ),
+        ),
+        MetricScore(
+            "apex_speed", "apex", "Apex speed", "km/h",
+            user.apex_speed_kmh, target.apex_speed_kmh, user.apex_speed_kmh - target.apex_speed_kmh,
+            _score(user.apex_speed_kmh - target.apex_speed_kmh, APEX_SPEED_TOLERANCE_KMH, APEX_SPEED_PENALTY),
+        ),
+        MetricScore(
+            "throttle_pickup", "exit", "Throttle pickup point", "m",
+            user.throttle_pickup_dist, target.throttle_pickup_dist,
+            user.throttle_pickup_dist - target.throttle_pickup_dist,
+            _score(
+                user.throttle_pickup_dist - target.throttle_pickup_dist,
+                THROTTLE_PICKUP_TOLERANCE_M, THROTTLE_PICKUP_PENALTY,
+            ),
+        ),
+        MetricScore(
+            "time_to_full_throttle", "exit", "Time to full throttle", "s",
+            user.time_to_full_throttle, target.time_to_full_throttle,
+            user.time_to_full_throttle - target.time_to_full_throttle,
+            _score(
+                user.time_to_full_throttle - target.time_to_full_throttle,
+                TIME_TO_FULL_THROTTLE_TOLERANCE_S, TIME_TO_FULL_THROTTLE_PENALTY,
+            ),
+        ),
+        MetricScore(
+            "exit_smoothness", "exit", "Exit smoothness", "",
+            user.exit_roughness, 0.0, user.exit_roughness,
+            max(
+                0.0,
+                100.0
+                - EXIT_REVERSAL_PENALTY_PER_COUNT * user.exit_reversal_count
+                - EXIT_ROUGHNESS_PENALTY * max(0.0, user.exit_roughness - EXIT_ROUGHNESS_TOLERANCE),
             ),
         ),
     ]
@@ -338,6 +459,19 @@ def score_zone(user: ZoneFeatures, target: ZoneFeatures) -> ZoneScore:
 def generate_tips(user: ZoneFeatures, metrics: list) -> list:
     by_key = {m.key: m for m in metrics}
     tips = []
+
+    es = by_key["entry_speed"]
+    if es.score < TIP_SCORE_THRESHOLD:
+        if es.delta < 0:
+            tips.append(
+                f"You carry {abs(es.delta):.1f} km/h less speed into this corner than the target — "
+                "try trail-braking a little deeper or brake slightly later if the line allows it."
+            )
+        else:
+            tips.append(
+                f"You carry {es.delta:.1f} km/h more speed into the corner than the target — good, just "
+                "make sure you're still hitting the brake point and apex."
+            )
 
     bp = by_key["brake_point"]
     if bp.score < TIP_SCORE_THRESHOLD:
@@ -408,8 +542,51 @@ def generate_tips(user: ZoneFeatures, metrics: list) -> list:
                 "able to carry the brake a little deeper here."
             )
 
+    aps = by_key["apex_speed"]
+    if aps.score < TIP_SCORE_THRESHOLD:
+        if aps.delta < 0:
+            tips.append(
+                f"Your apex speed is {abs(aps.delta):.1f} km/h slower than the target's — there may be "
+                "more rotation/speed available through the middle of the corner."
+            )
+        else:
+            tips.append(
+                f"You're carrying {aps.delta:.1f} km/h more apex speed than the target — great rotation, "
+                "just watch for running out of track on exit."
+            )
+
+    tp = by_key["throttle_pickup"]
+    if tp.score < TIP_SCORE_THRESHOLD:
+        tips.append(
+            f"You get back on throttle {abs(tp.delta):.0f}m "
+            f"{'later' if tp.delta > 0 else 'earlier'} than the target."
+        )
+
+    ttf = by_key["time_to_full_throttle"]
+    if ttf.score < TIP_SCORE_THRESHOLD:
+        if ttf.delta > 0:
+            tips.append(
+                f"It takes you {ttf.user_value:.2f}s to reach full throttle vs {ttf.target_value:.2f}s for "
+                "the target — try squeezing the throttle down more positively once you're pointed at the exit."
+            )
+        else:
+            tips.append(
+                "You get to full throttle faster than the target here — strong exit commitment, just make "
+                "sure the rear stays hooked up."
+            )
+
+    exsm = by_key["exit_smoothness"]
+    if exsm.score < TIP_SCORE_THRESHOLD:
+        if user.exit_reversal_count > 0:
+            tips.append(
+                f"You lifted off the throttle {user.exit_reversal_count} time(s) on the way to full "
+                "throttle — try one smooth, progressive squeeze instead."
+            )
+        else:
+            tips.append("Your throttle application is a little uneven here — aim for a smoother, progressive squeeze.")
+
     if not tips:
-        tips.append("Very close to the target through this braking zone — nice work.")
+        tips.append("Very close to the target through this whole corner — nice work.")
 
     return tips
 
@@ -427,34 +604,47 @@ def score_lap(user_lap: LapData, target_lap: LapData) -> LapScoreReport:
         target_label="target",
         zone_scores=zone_scores,
         unmatched_user_zones=unmatched,
-        overall_brake_score=overall,
+        overall_score=overall,
     )
 
 
 # --- Reporting --------------------------------------------------------------
 
 
+PHASE_LABELS = {
+    "entry": "Entry",
+    "brake_hit": "Brake hit",
+    "release": "Trail / release",
+    "apex": "Apex",
+    "exit": "Exit",
+}
+
+
 def print_report(report: LapScoreReport, expert: bool) -> None:
-    print(f"\nBrake score: {report.overall_brake_score:.0f}/100 "
-          f"across {len(report.zone_scores)} matched braking zone(s)")
+    print(f"\nCorner score: {report.overall_score:.0f}/100 "
+          f"across {len(report.zone_scores)} matched corner(s)")
 
     for zs in report.zone_scores:
         print(f"\n{zs.corner_label} — {zs.overall_score:.0f}/100")
         for tip in zs.tips:
             print(f"  - {tip}")
         if expert:
-            print(f"  {'metric':<24}{'you':>10}{'target':>10}{'delta':>10}{'score':>8}")
+            print(f"  {'metric':<26}{'you':>10}{'target':>10}{'delta':>10}{'score':>8}")
+            last_phase = None
             for m in zs.metrics:
+                if m.phase != last_phase:
+                    print(f"  [{PHASE_LABELS[m.phase]}]")
+                    last_phase = m.phase
                 unit = m.unit
                 print(
-                    f"  {m.label:<24}{m.user_value:>10.3f}{m.target_value:>10.3f}"
+                    f"  {m.label:<26}{m.user_value:>10.3f}{m.target_value:>10.3f}"
                     f"{m.delta:>+10.3f}{m.score:>8.0f}" + (f" {unit}" if unit else "")
                 )
 
     if report.unmatched_user_zones:
         unmatched_str = ", ".join(f"{z.start_dist:.0f}m" for z in report.unmatched_user_zones)
         print(
-            f"\nNote: {len(report.unmatched_user_zones)} braking zone(s) in your lap had no close match "
+            f"\nNote: {len(report.unmatched_user_zones)} corner(s) in your lap had no close match "
             f"in the target lap (brake points: {unmatched_str}) and were not scored."
         )
 
@@ -463,7 +653,7 @@ def report_to_dict(report: LapScoreReport, user_label: str, target_label: str) -
     return {
         "user_lap": user_label,
         "target_lap": target_label,
-        "overall_brake_score": report.overall_brake_score,
+        "overall_score": report.overall_score,
         "zones": [
             {
                 "corner_label": zs.corner_label,
@@ -484,8 +674,10 @@ def report_to_dict(report: LapScoreReport, user_label: str, target_label: str) -
 def plot_annotated_zones(user_lap: LapData, target_lap: LapData, report: LapScoreReport,
                           user_label: str, target_label: str, out_path: Path) -> None:
     fig, ax = plt.subplots(figsize=(12, 5.5))
-    ax.plot(user_lap.lap_dist, user_lap.brake, color="tab:red", linewidth=1.3, label=user_label)
-    ax.plot(target_lap.lap_dist, target_lap.brake, color="tab:blue", linewidth=1.3, label=target_label)
+    ax.plot(user_lap.lap_dist, user_lap.brake, color="tab:red", linewidth=1.3, label=f"{user_label} (brake)")
+    ax.plot(target_lap.lap_dist, target_lap.brake, color="tab:blue", linewidth=1.3, label=f"{target_label} (brake)")
+    ax.plot(user_lap.lap_dist, user_lap.throttle, color="tab:red", linewidth=1.0, alpha=0.4, linestyle="--")
+    ax.plot(target_lap.lap_dist, target_lap.throttle, color="tab:blue", linewidth=1.0, alpha=0.4, linestyle="--")
 
     for zs in report.zone_scores:
         ax.axvline(zs.user.start_dist, color="tab:red", linestyle=":", alpha=0.4)
@@ -501,8 +693,8 @@ def plot_annotated_zones(user_lap: LapData, target_lap: LapData, report: LapScor
         )
 
     ax.set_xlabel("Lap Distance (m)")
-    ax.set_ylabel("Brake (0 = off, 1 = full)")
-    ax.set_title("Brake Trace Comparison — scored zones")
+    ax.set_ylabel("Input (0 = off, 1 = full)")
+    ax.set_title("Brake (solid) & Throttle (dashed) — scored corners")
     ax.set_ylim(-0.02, 1.08)
     ax.legend()
     ax.grid(alpha=0.3)
@@ -526,8 +718,8 @@ def parse_args(argv=None) -> argparse.Namespace:
         "Defaults to the same file as --lap.",
     )
     parser.add_argument("--target-lap", type=int, required=True, help="Lap number to score against")
-    parser.add_argument("--expert", action="store_true", help="Print the full numeric metric breakdown per zone")
-    parser.add_argument("--plot", type=Path, default=None, help="Save an annotated brake-trace comparison image")
+    parser.add_argument("--expert", action="store_true", help="Print the full numeric metric breakdown per corner")
+    parser.add_argument("--plot", type=Path, default=None, help="Save an annotated brake/throttle comparison image")
     parser.add_argument("--out", type=Path, default=None, help="Write the full scoring report as JSON")
 
     return parser.parse_args(argv)
@@ -567,7 +759,7 @@ def main(argv=None) -> int:
 
     report = score_lap(user_lap, target_lap)
     if not report.zone_scores:
-        print("No matching braking zones were found between these two laps.", file=sys.stderr)
+        print("No matching corners were found between these two laps.", file=sys.stderr)
         return 1
 
     print_report(report, args.expert)

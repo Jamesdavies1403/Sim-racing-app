@@ -1,0 +1,441 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Apex Coach</title>
+<style>
+  :root{
+    color-scheme: light;
+    --page:#f9f9f7; --surface:#fcfcfb; --surface-2:#f1f0ea; --surface-3:#e9e8e1;
+    --ink:#0b0b0b; --ink-2:#52514e; --ink-muted:#898781;
+    --grid:#e1e0d9; --baseline:#c3c2b7; --border:rgba(11,11,11,0.10);
+    --accent:#eb6834; --accent-ink:#3d1c0c;
+    --user:#e34948; --target:#2a78d6;
+    --good:#0ca30c; --warning:#fab219; --serious:#ec835a; --critical:#d03b3b;
+    --font-display:'Rajdhani',system-ui,-apple-system,sans-serif;
+    --font-body:'IBM Plex Sans',system-ui,-apple-system,sans-serif;
+    --font-mono:'IBM Plex Mono',ui-monospace,'SFMono-Regular',Menlo,monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      color-scheme: dark;
+      --page:#0d0d0d; --surface:#1a1a19; --surface-2:#232321; --surface-3:#2c2c2a;
+      --ink:#ffffff; --ink-2:#c3c2b7; --ink-muted:#8f8d86;
+      --grid:#2c2c2a; --baseline:#383835; --border:rgba(255,255,255,0.10);
+      --accent:#e8752f; --accent-ink:#2a1206;
+      --user:#e66767; --target:#3987e5;
+    }
+  }
+  :root[data-theme="dark"]{
+    color-scheme: dark;
+    --page:#0d0d0d; --surface:#1a1a19; --surface-2:#232321; --surface-3:#2c2c2a;
+    --ink:#ffffff; --ink-2:#c3c2b7; --ink-muted:#8f8d86;
+    --grid:#2c2c2a; --baseline:#383835; --border:rgba(255,255,255,0.10);
+    --accent:#e8752f; --accent-ink:#2a1206;
+    --user:#e66767; --target:#3987e5;
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    background:var(--page); color:var(--ink);
+    font-family:var(--font-body);
+    padding-inline:16px; padding-block:24px 48px;
+    max-width:920px; margin-inline:auto;
+  }
+  h1,h2,h3{font-family:var(--font-display); text-wrap:balance; margin:0;}
+  .tnum{font-variant-numeric:tabular-nums;}
+  ::selection{background:var(--accent); color:var(--accent-ink);}
+
+  /* ---- masthead ---- */
+  .masthead{display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:18px;}
+  .wordmark{font-family:var(--font-display); font-weight:700; font-size:26px; letter-spacing:0.02em;}
+  .wordmark span{color:var(--accent);}
+  .tagline{color:var(--ink-muted); font-size:13px; max-width:32ch;}
+
+  /* ---- panel ---- */
+  .panel{
+    background:var(--surface); border:1px solid var(--border); border-radius:14px;
+    padding:18px 20px; margin-bottom:16px;
+  }
+  .panel-title{
+    font-family:var(--font-display); font-weight:600; font-size:15px;
+    text-transform:uppercase; letter-spacing:0.06em; color:var(--ink-2);
+    margin:0 0 12px;
+  }
+
+  /* ---- driver card ---- */
+  .driver{display:flex; gap:24px; flex-wrap:wrap; align-items:center;}
+  .level-block{display:flex; align-items:baseline; gap:10px; min-width:180px;}
+  .level-tier{font-size:12px; text-transform:uppercase; letter-spacing:0.08em; color:var(--ink-muted);}
+  .level-num{font-family:var(--font-display); font-weight:700; font-size:44px; line-height:1; color:var(--accent);}
+  .level-title{font-family:var(--font-display); font-weight:600; font-size:20px;}
+  .xp-wrap{flex:1; min-width:220px;}
+  .xp-caption{display:flex; justify-content:space-between; font-size:12px; color:var(--ink-muted); margin-bottom:6px; font-family:var(--font-mono);}
+  .xp-track{height:10px; border-radius:6px; background:var(--surface-3); overflow:hidden;}
+  .xp-fill{height:100%; background:linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 70%, white 30%)); border-radius:6px;}
+  .stat-row{display:flex; gap:22px; flex-wrap:wrap; margin-left:auto;}
+  .stat{text-align:right;}
+  .stat-val{font-family:var(--font-mono); font-weight:500; font-size:20px;}
+  .stat-label{font-size:11px; color:var(--ink-muted); text-transform:uppercase; letter-spacing:0.05em;}
+
+  /* ---- trend chart ---- */
+  .trend-svg{width:100%; height:auto; display:block;}
+  .trend-axis-label{fill:var(--ink-muted); font-size:10px; font-family:var(--font-mono);}
+  .trend-grid{stroke:var(--grid); stroke-width:1;}
+  .trend-line{fill:none; stroke:var(--target); stroke-width:2.5; stroke-linecap:round; stroke-linejoin:round;}
+  .trend-area{fill:var(--target); opacity:0.08;}
+  .trend-dot{fill:var(--surface);}
+  .trend-label{font-family:var(--font-mono); font-size:12px; fill:var(--ink); font-weight:500;}
+  .trend-badgetag{font-size:15px; fill:var(--accent); font-family:var(--font-body);}
+
+  /* ---- badge case ---- */
+  .badge-grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(160px,1fr)); gap:10px;}
+  .badge{
+    border:1px solid var(--border); border-radius:10px; padding:10px 12px;
+    background:var(--surface-2);
+  }
+  .badge.locked{opacity:0.45;}
+  .badge-name{font-weight:600; font-size:13px; display:flex; align-items:center; gap:6px;}
+  .badge-desc{font-size:11.5px; color:var(--ink-muted); margin-top:3px; line-height:1.35;}
+  .badge-check{width:15px; height:15px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:10px; flex-shrink:0;}
+  .badge.earned .badge-check{background:var(--good); color:#fff;}
+  .badge.locked .badge-check{background:var(--surface-3); color:var(--ink-muted); border:1px solid var(--border);}
+
+  /* ---- lap tabs ---- */
+  .lap-tabs{display:flex; gap:8px; overflow-x:auto; padding-bottom:2px; margin-bottom:14px;}
+  .lap-tab{
+    font-family:var(--font-mono); font-size:13px; padding:8px 14px; border-radius:999px;
+    border:1px solid var(--border); background:var(--surface); color:var(--ink-2);
+    cursor:pointer; white-space:nowrap; flex-shrink:0;
+  }
+  .lap-tab .score-chip{margin-left:7px; font-weight:600;}
+  .lap-tab[aria-selected="true"]{background:var(--ink); color:var(--page); border-color:var(--ink);}
+  :root[data-theme="dark"] .lap-tab[aria-selected="true"],
+  :root:not([data-theme="light"]) .lap-tab[aria-selected="true"]{background:var(--accent); color:var(--accent-ink); border-color:var(--accent);}
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .lap-tab[aria-selected="true"]{background:var(--accent); color:var(--accent-ink);} }
+
+  /* ---- lap summary ---- */
+  .lap-summary{display:flex; align-items:center; gap:18px; flex-wrap:wrap; margin-bottom:16px;}
+  .hero-score{font-family:var(--font-display); font-weight:700; font-size:52px; line-height:1;}
+  .hero-score .of100{font-size:20px; color:var(--ink-muted); font-weight:500;}
+  .lap-meta{display:flex; flex-direction:column; gap:2px; font-size:12.5px; color:var(--ink-2);}
+  .chip{
+    font-family:var(--font-mono); font-size:11.5px; padding:3px 9px; border-radius:999px;
+    border:1px solid var(--border); background:var(--surface-2); display:inline-flex; align-items:center; gap:5px;
+  }
+  .new-badge-row{display:flex; gap:6px; flex-wrap:wrap;}
+
+  /* ---- corner cards ---- */
+  .corner-grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(260px,1fr)); gap:14px;}
+  .corner-card{border:1px solid var(--border); border-radius:12px; background:var(--surface); padding:14px 16px; display:flex; flex-direction:column; gap:10px;}
+  .corner-head{display:flex; justify-content:space-between; align-items:baseline;}
+  .corner-name{font-family:var(--font-display); font-weight:600; font-size:16px;}
+  .corner-score{font-family:var(--font-mono); font-weight:600; font-size:19px;}
+  .phase-bar{display:flex; height:7px; border-radius:4px; overflow:hidden; gap:2px;}
+  .phase-seg{flex:1; border-radius:2px;}
+  .phase-legend{display:flex; justify-content:space-between; font-size:9.5px; color:var(--ink-muted); text-transform:uppercase; letter-spacing:0.03em;}
+  .tips{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px;}
+  .tips li{font-size:12.5px; line-height:1.45; color:var(--ink-2); padding-left:14px; position:relative;}
+  .tips li::before{content:"–"; position:absolute; left:0; color:var(--ink-muted);}
+  .tips li.positive{color:var(--good);}
+  .tips li.positive::before{content:"✓"; color:var(--good);}
+
+  details.expert{border-top:1px dashed var(--border); padding-top:8px;}
+  details.expert > summary{cursor:pointer; font-size:12px; font-weight:600; color:var(--ink-muted); text-transform:uppercase; letter-spacing:0.05em; list-style:none;}
+  details.expert > summary::-webkit-details-marker{display:none;}
+  details.expert > summary::before{content:"▸ "; }
+  details.expert[open] > summary::before{content:"▾ "; }
+  .metric-table{width:100%; border-collapse:collapse; font-family:var(--font-mono); font-size:11.5px; margin-top:8px;}
+  .metric-table th{text-align:right; font-weight:500; color:var(--ink-muted); padding:3px 6px; font-size:10px; text-transform:uppercase;}
+  .metric-table th:first-child, .metric-table td:first-child{text-align:left;}
+  .metric-table td{text-align:right; padding:3px 6px; border-top:1px solid var(--grid);}
+  .metric-table .phase-row td{padding-top:8px; font-weight:600; color:var(--ink-2); text-transform:uppercase; font-size:9.5px; letter-spacing:0.04em; border-top:none;}
+  .score-pill{display:inline-block; min-width:26px; text-align:center; border-radius:5px; padding:1px 4px; font-weight:600; color:#fff;}
+  .trace-wrap{margin-top:8px; overflow-x:auto;}
+  .trace-svg{width:100%; height:auto; min-width:320px; display:block;}
+  .trace-legend{display:flex; gap:14px; font-size:10.5px; color:var(--ink-muted); margin-top:4px; flex-wrap:wrap;}
+  .trace-legend span{display:inline-flex; align-items:center; gap:4px;}
+  .swatch{width:14px; height:2.5px; border-radius:2px; display:inline-block;}
+  .swatch.dash{background:repeating-linear-gradient(90deg, currentColor 0 4px, transparent 4px 7px);}
+
+  footer{margin-top:28px; font-size:11.5px; color:var(--ink-muted); text-align:center;}
+
+  @media (max-width:480px){
+    .level-num{font-size:36px;}
+    .hero-score{font-size:40px;}
+    .stat-row{margin-left:0; gap:16px;}
+  }
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+
+<div class="masthead">
+  <div>
+    <div class="wordmark">APEX<span>·</span>COACH</div>
+    <div class="tagline">Corner-by-corner brake, apex &amp; throttle coaching from your iRacing telemetry.</div>
+  </div>
+</div>
+
+<div class="panel driver" id="driver-panel"></div>
+<div class="panel">
+  <p class="panel-title">Score by lap — this session</p>
+  <div id="trend-chart"></div>
+</div>
+<div class="panel">
+  <p class="panel-title">Badges</p>
+  <div class="badge-grid" id="badge-grid"></div>
+</div>
+
+<div class="lap-tabs" id="lap-tabs"></div>
+<div class="lap-summary" id="lap-summary"></div>
+<div class="corner-grid" id="corner-grid"></div>
+
+<footer>Sample session from a synthetic 4-corner test lap — scoring pipeline output, not fabricated numbers. Load your own .ibt files with the Step 1–3 scripts to replace this data.</footer>
+
+<script id="dashboard-data" type="application/json">__DASHBOARD_DATA__</script>
+<script>
+(function(){
+  "use strict";
+  var DATA = JSON.parse(document.getElementById('dashboard-data').textContent);
+
+  var TIERS = ["Rookie","Class D","Class C","Class B","Class A","Pro"];
+  var LEVELS_PER_TIER = 5;
+  function levelTitle(level){
+    var tierIndex = Math.min(Math.floor((Math.max(level,1)-1)/LEVELS_PER_TIER), TIERS.length-1);
+    var rank = ((Math.max(level,1)-1) % LEVELS_PER_TIER) + 1;
+    return TIERS[tierIndex] + " " + rank;
+  }
+
+  function band(score){
+    if (score >= 90) return "good";
+    if (score >= 75) return "warning";
+    if (score >= 50) return "serious";
+    return "critical";
+  }
+  var BAND_COLOR = {good:"var(--good)", warning:"var(--warning)", serious:"var(--serious)", critical:"var(--critical)"};
+
+  var PHASES = [["entry","Entry"],["brake_hit","Brake"],["release","Release"],["apex","Apex"],["exit","Exit"]];
+
+  function el(tag, cls, html){
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (html !== undefined) e.innerHTML = html;
+    return e;
+  }
+
+  // ---------- Driver panel ----------
+  function renderDriver(){
+    var latest = DATA.laps[DATA.laps.length - 1].xp_result;
+    var lvl = latest.level_after;
+    var nextTitle = lvl.xp_for_next_level > 0 ? levelTitle(lvl.level + 1) : "Max level";
+    var wrap = document.getElementById('driver-panel');
+    wrap.innerHTML =
+      '<div class="level-block">' +
+        '<div><div class="level-tier">Level</div><div class="level-num tnum">' + lvl.level + '</div></div>' +
+        '<div class="level-title">' + lvl.title + '</div>' +
+      '</div>' +
+      '<div class="xp-wrap">' +
+        '<div class="xp-caption"><span>' + lvl.xp_into_level + ' / ' + (lvl.xp_for_next_level || '–') + ' XP</span><span>' +
+          (lvl.xp_for_next_level ? 'Next: ' + nextTitle : 'Max level reached') + '</span></div>' +
+        '<div class="xp-track"><div class="xp-fill" style="width:' + (lvl.progress_fraction*100).toFixed(0) + '%"></div></div>' +
+      '</div>' +
+      '<div class="stat-row">' +
+        '<div class="stat"><div class="stat-val tnum">' + latest.total_xp + '</div><div class="stat-label">Total XP</div></div>' +
+        '<div class="stat"><div class="stat-val tnum">' + latest.laps_scored + '</div><div class="stat-label">Laps scored</div></div>' +
+        '<div class="stat"><div class="stat-val tnum">' + latest.best_overall_score.toFixed(0) + '</div><div class="stat-label">Best score</div></div>' +
+      '</div>';
+  }
+
+  // ---------- Trend chart ----------
+  function renderTrend(){
+    var laps = DATA.laps;
+    var W = 760, H = 160, M = {left:34, right:16, top:36, bottom:26};
+    var plotW = W - M.left - M.right, plotH = H - M.top - M.bottom;
+    var n = laps.length;
+    var xAt = function(i){ return n === 1 ? M.left + plotW/2 : M.left + (i/(n-1)) * plotW; };
+    var yAt = function(v){ return M.top + (1 - v/100) * plotH; };
+
+    var gridLines = [0,25,50,75,100].map(function(v){
+      var y = yAt(v);
+      return '<line class="trend-grid" x1="'+M.left+'" x2="'+(W-M.right)+'" y1="'+y+'" y2="'+y+'"/>' +
+             '<text class="trend-axis-label" x="'+(M.left-6)+'" y="'+(y+3)+'" text-anchor="end">'+v+'</text>';
+    }).join('');
+
+    var pathD = laps.map(function(l,i){ return (i===0?'M':'L') + xAt(i).toFixed(1) + ',' + yAt(l.report.overall_score).toFixed(1); }).join(' ');
+    var areaD = pathD + ' L' + xAt(n-1).toFixed(1) + ',' + yAt(0) + ' L' + xAt(0).toFixed(1) + ',' + yAt(0) + ' Z';
+
+    var dots = laps.map(function(l,i){
+      var x = xAt(i), y = yAt(l.report.overall_score);
+      var badgeTag = l.xp_result.new_badges.length ? '<text class="trend-badgetag" x="'+x+'" y="'+(y-30)+'" text-anchor="middle">★</text>' : '';
+      return '<circle cx="'+x+'" cy="'+y+'" r="9" class="trend-dot" stroke="var(--target)" stroke-width="2.5"/>' +
+             '<text class="trend-label" x="'+x+'" y="'+(y-15)+'" text-anchor="middle">'+l.report.overall_score.toFixed(0)+'</text>' +
+             badgeTag +
+             '<text class="trend-axis-label" x="'+x+'" y="'+(H-6)+'" text-anchor="middle">Lap '+l.lap_number+'</text>';
+    }).join('');
+
+    var svg =
+      '<svg class="trend-svg" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Overall corner score by lap">' +
+        gridLines +
+        '<path class="trend-area" d="'+areaD+'"/>' +
+        '<path class="trend-line" d="'+pathD+'"/>' +
+        dots +
+      '</svg>';
+    document.getElementById('trend-chart').innerHTML = svg;
+  }
+
+  // ---------- Badge case ----------
+  function renderBadges(){
+    var latest = DATA.laps[DATA.laps.length - 1].xp_result;
+    var grid = document.getElementById('badge-grid');
+    grid.innerHTML = latest.badges.map(function(b){
+      return '<div class="badge ' + (b.earned ? 'earned' : 'locked') + '">' +
+        '<div class="badge-name"><span class="badge-check">' + (b.earned ? '✓' : '') + '</span>' + b.name + '</div>' +
+        '<div class="badge-desc">' + b.description + '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  // ---------- Lap tabs + detail ----------
+  var selectedLap = DATA.laps.length; // default to most recent
+
+  function renderTabs(){
+    var tabs = document.getElementById('lap-tabs');
+    tabs.innerHTML = '';
+    DATA.laps.forEach(function(l){
+      var b = el('button', 'lap-tab');
+      b.setAttribute('aria-selected', String(l.lap_number === selectedLap));
+      b.innerHTML = 'Lap ' + l.lap_number + '<span class="score-chip tnum" style="color:' + BAND_COLOR[band(l.report.overall_score)] + '">' + l.report.overall_score.toFixed(0) + '</span>';
+      b.addEventListener('click', function(){ selectedLap = l.lap_number; renderAll(); });
+      tabs.appendChild(b);
+    });
+  }
+
+  function renderLapSummary(lapData){
+    var r = lapData.report, xp = lapData.xp_result;
+    var b = band(r.overall_score);
+    var badgesHtml = xp.new_badges.length
+      ? xp.new_badges.map(function(nb){ return '<span class="chip">★ ' + nb.name + '</span>'; }).join('')
+      : '<span class="chip">No new badges this lap</span>';
+    document.getElementById('lap-summary').innerHTML =
+      '<div class="hero-score tnum" style="color:' + BAND_COLOR[b] + '">' + r.overall_score.toFixed(0) + '<span class="of100">/100</span></div>' +
+      '<div class="lap-meta">' +
+        '<div>' + r.user_lap + '</div>' +
+        '<div style="color:var(--ink-muted)">vs ' + r.target_lap + '</div>' +
+      '</div>' +
+      '<div class="lap-meta">' +
+        '<div class="chip tnum">+' + xp.xp_earned + ' XP</div>' +
+      '</div>' +
+      '<div class="new-badge-row">' + badgesHtml + '</div>';
+  }
+
+  function phaseSegments(zone){
+    var sums = {}, counts = {};
+    zone.metrics.forEach(function(m){
+      sums[m.phase] = (sums[m.phase] || 0) + m.score;
+      counts[m.phase] = (counts[m.phase] || 0) + 1;
+    });
+    return PHASES.map(function(p){
+      var key = p[0];
+      var avg = sums[key] !== undefined ? sums[key] / counts[key] : null;
+      return { key: key, label: p[1], avg: avg };
+    });
+  }
+
+  function renderTraceSvg(zone){
+    var W = 440, H = 150, M = {left:30, right:22, top:10, bottom:20};
+    var plotW = W - M.left - M.right, plotH = H - M.top - M.bottom;
+    var allDist = zone.user_trace.lap_dist.concat(zone.target_trace.lap_dist);
+    var minX = Math.min.apply(null, allDist), maxX = Math.max.apply(null, allDist);
+    var span = Math.max(1e-6, maxX - minX);
+    var xAt = function(d){ return M.left + ((d - minX) / span) * plotW; };
+    var yAt = function(v){ return M.top + (1 - v) * plotH; };
+
+    function linePath(dist, val){
+      return dist.map(function(d,i){ return (i===0?'M':'L') + xAt(d).toFixed(1) + ',' + yAt(val[i]).toFixed(1); }).join(' ');
+    }
+
+    var gridLines = [0,0.5,1].map(function(v){
+      var y = yAt(v);
+      return '<line class="trend-grid" x1="'+M.left+'" x2="'+(W-M.right)+'" y1="'+y+'" y2="'+y+'"/>' +
+             '<text class="trend-axis-label" x="'+(M.left-4)+'" y="'+(y+3)+'" text-anchor="end">'+v+'</text>';
+    }).join('');
+    var xTicks = '<text class="trend-axis-label" x="'+M.left+'" y="'+(H-4)+'" text-anchor="start">'+minX.toFixed(0)+'m</text>' +
+                 '<text class="trend-axis-label" x="'+(W-M.right)+'" y="'+(H-4)+'" text-anchor="end">'+maxX.toFixed(0)+'m</text>';
+
+    var paths =
+      '<path d="'+linePath(zone.target_trace.lap_dist, zone.target_trace.brake)+'" fill="none" stroke="var(--target)" stroke-width="2"/>' +
+      '<path d="'+linePath(zone.target_trace.lap_dist, zone.target_trace.throttle)+'" fill="none" stroke="var(--target)" stroke-width="1.5" stroke-dasharray="4 3" opacity="0.75"/>' +
+      '<path d="'+linePath(zone.user_trace.lap_dist, zone.user_trace.brake)+'" fill="none" stroke="var(--user)" stroke-width="2"/>' +
+      '<path d="'+linePath(zone.user_trace.lap_dist, zone.user_trace.throttle)+'" fill="none" stroke="var(--user)" stroke-width="1.5" stroke-dasharray="4 3" opacity="0.75"/>';
+
+    return '<svg class="trace-svg" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Brake and throttle trace for this corner">' +
+      gridLines + xTicks + paths + '</svg>';
+  }
+
+  function renderMetricTable(zone){
+    var rows = '', lastPhase = null;
+    zone.metrics.forEach(function(m){
+      if (m.phase !== lastPhase){
+        var label = PHASES.filter(function(p){return p[0]===m.phase;})[0][1];
+        rows += '<tr class="phase-row"><td colspan="5">' + label + '</td></tr>';
+        lastPhase = m.phase;
+      }
+      var unit = m.unit ? (' ' + m.unit) : '';
+      rows += '<tr><td>' + m.label + '</td>' +
+        '<td class="tnum">' + m.user_value.toFixed(2) + unit + '</td>' +
+        '<td class="tnum">' + m.target_value.toFixed(2) + unit + '</td>' +
+        '<td class="tnum">' + (m.delta >= 0 ? '+' : '') + m.delta.toFixed(2) + '</td>' +
+        '<td><span class="score-pill tnum" style="background:' + BAND_COLOR[band(m.score)] + '">' + m.score.toFixed(0) + '</span></td></tr>';
+    });
+    return '<table class="metric-table"><thead><tr><th>Metric</th><th>You</th><th>Target</th><th>Delta</th><th>Score</th></tr></thead><tbody>' + rows + '</tbody></table>';
+  }
+
+  function renderCornerCard(zone){
+    var segs = phaseSegments(zone);
+    var segHtml = segs.map(function(s){
+      var color = s.avg === null ? 'var(--grid)' : BAND_COLOR[band(s.avg)];
+      return '<div class="phase-seg" style="background:' + color + '" title="' + s.label + (s.avg !== null ? ': ' + s.avg.toFixed(0) : '') + '"></div>';
+    }).join('');
+    var legendHtml = segs.map(function(s){ return '<span>' + s.label + '</span>'; }).join('');
+    var tipsHtml = zone.tips.map(function(t){
+      var positive = /nice work/i.test(t);
+      return '<li' + (positive ? ' class="positive"' : '') + '>' + t + '</li>';
+    }).join('');
+
+    var card = el('div', 'corner-card');
+    card.innerHTML =
+      '<div class="corner-head">' +
+        '<div class="corner-name">' + zone.corner_label + '</div>' +
+        '<div class="corner-score tnum" style="color:' + BAND_COLOR[band(zone.overall_score)] + '">' + zone.overall_score.toFixed(0) + '</div>' +
+      '</div>' +
+      '<div><div class="phase-bar">' + segHtml + '</div><div class="phase-legend">' + legendHtml + '</div></div>' +
+      '<ul class="tips">' + tipsHtml + '</ul>' +
+      '<details class="expert"><summary>Expert: full trace &amp; metrics</summary>' +
+        '<div class="trace-wrap">' + renderTraceSvg(zone) + '</div>' +
+        '<div class="trace-legend">' +
+          '<span><span class="swatch" style="background:var(--user)"></span>You — brake</span>' +
+          '<span><span class="swatch dash" style="color:var(--user)"></span>You — throttle</span>' +
+          '<span><span class="swatch" style="background:var(--target)"></span>Target — brake</span>' +
+          '<span><span class="swatch dash" style="color:var(--target)"></span>Target — throttle</span>' +
+        '</div>' +
+        renderMetricTable(zone) +
+      '</details>';
+    return card;
+  }
+
+  function renderCorners(lapData){
+    var grid = document.getElementById('corner-grid');
+    grid.innerHTML = '';
+    lapData.report.zones.forEach(function(zone){ grid.appendChild(renderCornerCard(zone)); });
+  }
+
+  function renderAll(){
+    renderTabs();
+    var lapData = DATA.laps.filter(function(l){ return l.lap_number === selectedLap; })[0];
+    renderLapSummary(lapData);
+    renderCorners(lapData);
+  }
+
+  renderDriver();
+  renderTrend();
+  renderBadges();
+  renderAll();
+})();
+</script>

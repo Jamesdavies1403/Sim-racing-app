@@ -4,3 +4,5 @@ __pycache__/
 venv/
 *.png
 *.ibt
+profile.json
+dashboard.html

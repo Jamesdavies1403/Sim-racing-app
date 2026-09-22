@@ -147,62 +147,120 @@ python scripts/brake_trace.py "yourfile.ibt" --lap1 2 --lap2 3 --out brake_compa
 - Lap 0 (or negative lap numbers) can show up for out-laps or before the
   session properly starts — that's normal, just pick a real flying lap.
 
-## Step 2: Brake scoring model
+## Step 2: Corner scoring model
 
-[`scripts/brake_scoring.py`](scripts/brake_scoring.py) builds on Step 1 to
-turn the brake trace into per-corner scores and coaching tips, comparing a
-lap against a target lap (your own personal best, a provided baseline, or —
-paid tier — a fast coach lap).
+[`scripts/corner_scoring.py`](scripts/corner_scoring.py) builds on Step 1 to
+turn the brake/throttle/speed traces into full per-corner scores and
+coaching tips, comparing a lap against a target lap (your own personal
+best, a provided baseline, or — paid tier — a fast coach lap).
 
-For every braking zone it finds, it scores six things against the target,
-each 0–100:
+Each braking event anchors one "corner". For every corner it finds, it
+scores eleven things against the target, each 0–100, grouped into five
+phases:
 
-- **Initial hit**: brake point (lap distance vs target), time to peak
+- **Entry**: speed carried to the brake point, vs target.
+- **Brake hit**: brake point (lap distance vs target), time to peak
   pressure, and peak pressure level.
-- **Release**: release start point, smoothness of the trail-off (re-presses
-  and jerkiness are penalized), and whether the release finishes before or
-  after the apex, relative to how the target does it.
+- **Trail / release**: release start point, smoothness of the trail-off
+  (re-presses and jerkiness are penalized), and whether the release
+  finishes before or after the apex, relative to how the target does it.
+- **Apex**: minimum corner speed, vs target.
+- **Exit**: throttle pickup point, time to full throttle, and smoothness
+  of the application (lifts/jerkiness are penalized).
 
 Each corner gets an overall score plus plain-English tips by default. Add
-`--expert` for the full numeric breakdown per metric, `--plot` to save an
-annotated brake-trace image with each corner's score marked, and `--out` to
-write a full JSON report (always includes the raw per-corner trace, for a
-future detailed-trace view).
+`--expert` for the full numeric breakdown per metric (grouped by phase),
+`--plot` to save an annotated brake/throttle comparison image, and `--out`
+to write a full JSON report (always includes the raw per-corner trace, for
+the dashboard in Step 4).
 
 ### Running it
 
 ```bash
 # Score lap 4 of your session against lap 2 of a baseline/coach lap
-python scripts/brake_scoring.py your_session.ibt --lap 4 --target baseline.ibt --target-lap 2
+python scripts/corner_scoring.py your_session.ibt --lap 4 --target baseline.ibt --target-lap 2
 
 # Score two laps within the same file (e.g. vs your own personal best)
-python scripts/brake_scoring.py session.ibt --lap 4 --target-lap 2
+python scripts/corner_scoring.py session.ibt --lap 4 --target-lap 2
 
 # Full breakdown, annotated plot, and a JSON report for tooling
-python scripts/brake_scoring.py session.ibt --lap 4 --target-lap 2 --expert --plot zones.png --out report.json
+python scripts/corner_scoring.py session.ibt --lap 4 --target-lap 2 --expert --plot zones.png --out report.json
 ```
 
 Example output:
 
 ```
-Brake score: 81/100 across 2 matched braking zone(s)
+Corner score: 81/100 across 2 matched corner(s)
 
 Corner @ 192m — 67/100
   - You brake 10m later than the target here — good if you're carrying more
     speed in, but make sure you're still hitting the apex.
   - You re-pressed the brake 3 time(s) while trailing off — try one smooth,
     continuous release instead.
+  - Your apex speed is 8.8 km/h slower than the target's — there may be more
+    rotation/speed available through the middle of the corner.
 ```
 
-A note on the model: braking zones are detected automatically from the
-brake trace (no manual corner markers needed), and matched to the target
-lap's zones by lap distance. The apex point used for the "release vs apex"
-metric is approximated as the lowest-speed point shortly after the brake
-release — a placeholder for a proper corner/apex detector, which can
-replace it later without changing how scoring works.
+A note on the model: corners are detected automatically from the brake
+trace (no manual corner markers needed), and matched to the target lap's
+corners by lap distance. The apex point is approximated as the lowest-speed
+point from the brake peak through a short window past release — a
+placeholder for a proper corner/apex detector (e.g. from steering/yaw
+data), which can replace it later without changing how scoring works.
+
+## Step 3: XP, levels, and badges
+
+[`scripts/progression.py`](scripts/progression.py) is the game layer on top
+of Step 2: it turns a scored lap into XP, a Rookie-to-Pro level, and
+badges, tracked persistently in a small local profile file.
+
+- **XP**: a flat completion bonus plus each corner's score (0–100) as XP —
+  so both scoring more corners and scoring them well earns more XP.
+- **Levels**: 30 levels across 6 tiers — Rookie, Class D, Class C, Class B,
+  Class A, Pro — 5 numbered levels per tier. Later levels take meaningfully
+  longer than early ones.
+- **Badges**: rule-based achievements evaluated after every scored lap —
+  first lap scored, a clean/smooth lap, hitting the brake point or apex
+  speed on every corner, a streak of good laps, an XP milestone, and more.
+
+```bash
+# Award XP for a scored lap (Step 2's --out) and update a profile file
+python scripts/progression.py report.json --profile profile.json
+```
+
+```
++164 XP (164 total)
+Level: Rookie 1 (64/300 XP)
+New badge: First Lap Scored — Score your first lap.
+```
+
+## Step 4: Dashboard
+
+[`scripts/dashboard.py`](scripts/dashboard.py) builds an HTML dashboard
+from one or more Step 2 reports, applying them through Step 3's progression
+in session order so the page shows XP, level-ups, and badge unlocks as they
+actually happened lap by lap — plus a session score trend, a badge case,
+and a per-corner breakdown (phase bars, tips, and an expert view with the
+full metric table and a brake/throttle trace chart) for whichever lap you
+select.
+
+```bash
+# Score each lap of a session first, in order:
+python scripts/corner_scoring.py session.ibt --lap 1 --target-lap 0 --out lap1.json
+python scripts/corner_scoring.py session.ibt --lap 2 --target-lap 0 --out lap2.json
+
+# Then build the dashboard from those reports, in the same order:
+python scripts/dashboard.py lap1.json lap2.json --profile profile.json --out dashboard.html
+```
+
+Open `dashboard.html` in a browser. Running it again later with more laps
+appended continues the same profile, so the dashboard reflects ongoing
+progress rather than resetting each time.
 
 ### What's next
 
-XP, levels, badges, and the Rookie-to-Pro progression layer, plus scoring
-the rest of the corner (entry, apex speed, exit throttle) for the paid
-tier, on top of this telemetry and scoring pipeline.
+This is a sample dashboard over synthetic test data — see it at
+https://claude.ai/artifact/QQCdxgBcgqvgVGAg4q8u4w. Next up: scoring the
+rest of the corner for real .ibt sessions end-to-end, a proper apex/corner
+detector, and turning this from a generated HTML page into the actual
+desktop app (XP/badge notifications, a lap browser, live telemetry).
