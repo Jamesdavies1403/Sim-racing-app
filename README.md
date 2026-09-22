@@ -5,10 +5,13 @@ raw telemetry into game-like feedback: XP, levels, badges, and detailed
 corner-by-corner scoring (braking, apex, throttle) against a personal best
 or a target/coach lap.
 
-This repo is being built incrementally. **Step 1** (this commit) is just the
-foundation: a standalone Python script that reads iRacing's `.ibt` telemetry
-files and plots two laps' brake traces on top of each other, so we can prove
-out file parsing before building any scoring or UI on top of it.
+This repo is being built incrementally.
+
+- **Step 1**: a standalone script that reads iRacing's `.ibt` telemetry
+  files and plots two laps' brake traces on top of each other, to prove out
+  file parsing before building any scoring or UI on top of it.
+- **Step 2**: a scoring model that turns those brake traces into per-corner
+  scores and coaching tips against a target lap.
 
 ## Step 1: Brake trace comparison script
 
@@ -144,9 +147,62 @@ python scripts/brake_trace.py "yourfile.ibt" --lap1 2 --lap2 3 --out brake_compa
 - Lap 0 (or negative lap numbers) can show up for out-laps or before the
   session properly starts — that's normal, just pick a real flying lap.
 
+## Step 2: Brake scoring model
+
+[`scripts/brake_scoring.py`](scripts/brake_scoring.py) builds on Step 1 to
+turn the brake trace into per-corner scores and coaching tips, comparing a
+lap against a target lap (your own personal best, a provided baseline, or —
+paid tier — a fast coach lap).
+
+For every braking zone it finds, it scores six things against the target,
+each 0–100:
+
+- **Initial hit**: brake point (lap distance vs target), time to peak
+  pressure, and peak pressure level.
+- **Release**: release start point, smoothness of the trail-off (re-presses
+  and jerkiness are penalized), and whether the release finishes before or
+  after the apex, relative to how the target does it.
+
+Each corner gets an overall score plus plain-English tips by default. Add
+`--expert` for the full numeric breakdown per metric, `--plot` to save an
+annotated brake-trace image with each corner's score marked, and `--out` to
+write a full JSON report (always includes the raw per-corner trace, for a
+future detailed-trace view).
+
+### Running it
+
+```bash
+# Score lap 4 of your session against lap 2 of a baseline/coach lap
+python scripts/brake_scoring.py your_session.ibt --lap 4 --target baseline.ibt --target-lap 2
+
+# Score two laps within the same file (e.g. vs your own personal best)
+python scripts/brake_scoring.py session.ibt --lap 4 --target-lap 2
+
+# Full breakdown, annotated plot, and a JSON report for tooling
+python scripts/brake_scoring.py session.ibt --lap 4 --target-lap 2 --expert --plot zones.png --out report.json
+```
+
+Example output:
+
+```
+Brake score: 81/100 across 2 matched braking zone(s)
+
+Corner @ 192m — 67/100
+  - You brake 10m later than the target here — good if you're carrying more
+    speed in, but make sure you're still hitting the apex.
+  - You re-pressed the brake 3 time(s) while trailing off — try one smooth,
+    continuous release instead.
+```
+
+A note on the model: braking zones are detected automatically from the
+brake trace (no manual corner markers needed), and matched to the target
+lap's zones by lap distance. The apex point used for the "release vs apex"
+metric is approximated as the lowest-speed point shortly after the brake
+release — a placeholder for a proper corner/apex detector, which can
+replace it later without changing how scoring works.
+
 ### What's next
 
-This script only extracts and plots data — no scoring, XP, or UI yet.
-Future steps will build the brake-point/peak-pressure/release scoring
-model, personal-best and baseline-lap comparison, and the game-like
-progression layer on top of this telemetry pipeline.
+XP, levels, badges, and the Rookie-to-Pro progression layer, plus scoring
+the rest of the corner (entry, apex speed, exit throttle) for the paid
+tier, on top of this telemetry and scoring pipeline.

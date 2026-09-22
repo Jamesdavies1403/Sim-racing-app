@@ -31,7 +31,7 @@ import matplotlib.pyplot as plt
 
 # The telemetry channels this step needs. iRacing records hundreds of
 # channels; we only pull the ones relevant to brake/throttle/speed scoring.
-CHANNELS = ["Lap", "LapDist", "Brake", "Throttle", "Speed"]
+CHANNELS = ["Lap", "LapDist", "Brake", "Throttle", "Speed", "SessionTime"]
 OPTIONAL_CHANNELS = ["LapCurrentLapTime"]
 
 
@@ -42,6 +42,7 @@ class LapData:
     brake: list = field(default_factory=list)
     throttle: list = field(default_factory=list)
     speed: list = field(default_factory=list)
+    session_time: list = field(default_factory=list)
     lap_time_samples: list = field(default_factory=list)
 
     @property
@@ -86,6 +87,7 @@ def split_into_laps(data: dict) -> dict:
         lap.brake.append(data["Brake"][i])
         lap.throttle.append(data["Throttle"][i])
         lap.speed.append(data["Speed"][i])
+        lap.session_time.append(data["SessionTime"][i])
         if has_lap_time:
             lap.lap_time_samples.append(data["LapCurrentLapTime"][i])
 
