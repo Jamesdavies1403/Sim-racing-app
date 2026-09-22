@@ -4,10 +4,10 @@
 <style>
   :root{
     color-scheme: light;
-    --page:#f9f9f7; --surface:#fcfcfb; --surface-2:#f1f0ea; --surface-3:#e9e8e1;
+    --page:#f9f9f7; --surface:#fcfcfb; --surface-2:#f1f0ea;
     --ink:#0b0b0b; --ink-2:#52514e; --ink-muted:#898781;
-    --grid:#e1e0d9; --baseline:#c3c2b7; --border:rgba(11,11,11,0.10);
-    --accent:#eb6834; --accent-ink:#3d1c0c;
+    --grid:#e1e0d9; --border:rgba(11,11,11,0.10);
+    --accent:#eb6834; --accent-ink:#3d1c0c; --accent-wash:#fbe7dc;
     --user:#e34948; --target:#2a78d6;
     --good:#0ca30c; --warning:#fab219; --serious:#ec835a; --critical:#d03b3b;
     --font-display:'Rajdhani',system-ui,-apple-system,sans-serif;
@@ -17,19 +17,19 @@
   @media (prefers-color-scheme: dark){
     :root:not([data-theme="light"]){
       color-scheme: dark;
-      --page:#0d0d0d; --surface:#1a1a19; --surface-2:#232321; --surface-3:#2c2c2a;
+      --page:#0d0d0d; --surface:#1a1a19; --surface-2:#201f1d;
       --ink:#ffffff; --ink-2:#c3c2b7; --ink-muted:#8f8d86;
-      --grid:#2c2c2a; --baseline:#383835; --border:rgba(255,255,255,0.10);
-      --accent:#e8752f; --accent-ink:#2a1206;
+      --grid:#2c2c2a; --border:rgba(255,255,255,0.10);
+      --accent:#e8752f; --accent-ink:#2a1206; --accent-wash:#2e1c10;
       --user:#e66767; --target:#3987e5;
     }
   }
   :root[data-theme="dark"]{
     color-scheme: dark;
-    --page:#0d0d0d; --surface:#1a1a19; --surface-2:#232321; --surface-3:#2c2c2a;
+    --page:#0d0d0d; --surface:#1a1a19; --surface-2:#201f1d;
     --ink:#ffffff; --ink-2:#c3c2b7; --ink-muted:#8f8d86;
-    --grid:#2c2c2a; --baseline:#383835; --border:rgba(255,255,255,0.10);
-    --accent:#e8752f; --accent-ink:#2a1206;
+    --grid:#2c2c2a; --border:rgba(255,255,255,0.10);
+    --accent:#e8752f; --accent-ink:#2a1206; --accent-wash:#2e1c10;
     --user:#e66767; --target:#3987e5;
   }
 
@@ -37,157 +37,190 @@
   body{
     background:var(--page); color:var(--ink);
     font-family:var(--font-body);
-    padding-inline:16px; padding-block:24px 48px;
-    max-width:920px; margin-inline:auto;
+    padding-inline:16px; padding-block:28px 40px;
+    max-width:640px; margin-inline:auto;
   }
   h1,h2,h3{font-family:var(--font-display); text-wrap:balance; margin:0;}
+  p{margin:0;}
   .tnum{font-variant-numeric:tabular-nums;}
+  button{font-family:inherit;}
   ::selection{background:var(--accent); color:var(--accent-ink);}
 
-  /* ---- masthead ---- */
-  .masthead{display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:18px;}
-  .wordmark{font-family:var(--font-display); font-weight:700; font-size:26px; letter-spacing:0.02em;}
+  /* ---- header ---- */
+  .top{display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:26px;}
+  .wordmark{font-family:var(--font-display); font-weight:700; font-size:22px; letter-spacing:0.02em;}
   .wordmark span{color:var(--accent);}
-  .tagline{color:var(--ink-muted); font-size:13px; max-width:32ch;}
-
-  /* ---- panel ---- */
-  .panel{
-    background:var(--surface); border:1px solid var(--border); border-radius:14px;
-    padding:18px 20px; margin-bottom:16px;
+  .level-line{display:flex; align-items:center; gap:9px;}
+  .level-chip{
+    font-family:var(--font-display); font-weight:700; font-size:13px;
+    background:var(--ink); color:var(--page); border-radius:999px; padding:4px 11px;
+    white-space:nowrap;
   }
-  .panel-title{
-    font-family:var(--font-display); font-weight:600; font-size:15px;
-    text-transform:uppercase; letter-spacing:0.06em; color:var(--ink-2);
-    margin:0 0 12px;
+  .xp-mini{width:110px; height:6px; border-radius:4px; background:var(--surface-2); overflow:hidden;}
+  .xp-mini-fill{height:100%; background:var(--accent);}
+  .xp-text{font-family:var(--font-mono); font-size:11px; color:var(--ink-muted); white-space:nowrap;}
+
+  /* ---- section rhythm ---- */
+  section{padding-block:22px; border-top:1px solid var(--border);}
+  section:first-of-type{border-top:none; padding-top:0;}
+  section > h2{font-size:16px; font-weight:600; margin-bottom:4px;}
+  .muted{color:var(--ink-muted); font-size:13.5px; line-height:1.5;}
+
+  /* ---- practice CTA ---- */
+  .practice{
+    background:var(--accent-wash); border-radius:16px; padding:20px;
+    border-top:none; margin-bottom:4px;
+  }
+  .practice > h2{color:var(--accent-ink); font-size:19px;}
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .practice > h2{color:#ffd8bf;} }
+  :root[data-theme="dark"] .practice > h2{color:#ffd8bf;}
+  .practice .muted{color:inherit; opacity:0.75; margin-top:4px;}
+  .corner-picker{display:flex; gap:7px; flex-wrap:wrap; margin-top:14px;}
+  .corner-btn{
+    font-family:var(--font-mono); font-size:12.5px; padding:7px 12px; border-radius:8px;
+    border:1px solid var(--border); background:var(--surface); color:var(--ink-2); cursor:pointer;
+  }
+  .corner-btn[aria-pressed="true"]{background:var(--ink); color:var(--page); border-color:var(--ink);}
+  .btn-primary{
+    margin-top:16px; font-family:var(--font-display); font-weight:600; font-size:16px;
+    background:var(--ink); color:var(--page); border:none; border-radius:10px;
+    padding:12px 20px; cursor:pointer; width:100%;
+  }
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .btn-primary{background:var(--accent); color:var(--accent-ink);} }
+  :root[data-theme="dark"] .btn-primary{background:var(--accent); color:var(--accent-ink);}
+
+  /* ---- session list ---- */
+  .lap-row{display:flex; align-items:baseline; justify-content:space-between; gap:12px; padding-block:9px;}
+  .lap-row + .lap-row{border-top:1px solid var(--grid);}
+  .lap-row-left{display:flex; align-items:baseline; gap:10px;}
+  .lap-name{font-size:13.5px; color:var(--ink-2);}
+  .lap-score{font-family:var(--font-mono); font-weight:600; font-size:16px;}
+  .lap-corners{font-family:var(--font-mono); font-size:11px; color:var(--ink-muted);}
+
+  /* ---- badges ---- */
+  .badges-toggle{
+    background:none; border:none; padding:0; cursor:pointer; font-size:14px; color:var(--ink);
+    display:flex; align-items:center; gap:6px; font-family:var(--font-body);
+  }
+  .badges-toggle .chev{color:var(--ink-muted); font-size:11px;}
+  .badges-list{margin-top:12px; display:flex; flex-direction:column; gap:7px;}
+  .badges-list[hidden]{display:none;}
+  .badge-row{display:flex; align-items:baseline; gap:8px; font-size:13px;}
+  .badge-dot{width:7px; height:7px; border-radius:50%; flex-shrink:0; margin-top:3px;}
+  .badge-row.earned .badge-dot{background:var(--good);}
+  .badge-row.locked .badge-dot{background:var(--grid);}
+  .badge-row.locked{color:var(--ink-muted);}
+  .badge-row b{font-weight:600;}
+
+  footer{margin-top:8px; font-size:11.5px; color:var(--ink-muted); line-height:1.5;}
+
+  @media (max-width:420px){ .wordmark{font-size:19px;} }
+
+  /* ================= practice overlay ================= */
+  .overlay{
+    position:fixed; inset:0; background:rgba(0,0,0,0.55);
+    display:flex; align-items:center; justify-content:center; padding:16px;
+    z-index:50;
+  }
+  .overlay[hidden]{display:none;}
+  .overlay-panel{
+    background:var(--surface); border-radius:16px; padding:22px 22px 20px;
+    width:100%; max-width:480px; max-height:calc(100% - 16px); overflow-y:auto;
+    position:relative;
+  }
+  .overlay-close{
+    position:absolute; top:14px; right:14px; width:30px; height:30px; border-radius:50%;
+    border:1px solid var(--border); background:var(--surface-2); color:var(--ink-2);
+    font-size:16px; line-height:1; cursor:pointer;
+  }
+  .overlay-title{font-size:18px; font-weight:600; margin-bottom:2px; padding-right:34px;}
+  .overlay-sub{font-size:12.5px; color:var(--ink-muted); margin-bottom:16px;}
+
+  .countdown-num{
+    font-family:var(--font-display); font-weight:700; font-size:64px; text-align:center;
+    padding-block:40px; color:var(--accent);
   }
 
-  /* ---- driver card ---- */
-  .driver{display:flex; gap:24px; flex-wrap:wrap; align-items:center;}
-  .level-block{display:flex; align-items:baseline; gap:10px; min-width:180px;}
-  .level-tier{font-size:12px; text-transform:uppercase; letter-spacing:0.08em; color:var(--ink-muted);}
-  .level-num{font-family:var(--font-display); font-weight:700; font-size:44px; line-height:1; color:var(--accent);}
-  .level-title{font-family:var(--font-display); font-weight:600; font-size:20px;}
-  .xp-wrap{flex:1; min-width:220px;}
-  .xp-caption{display:flex; justify-content:space-between; font-size:12px; color:var(--ink-muted); margin-bottom:6px; font-family:var(--font-mono);}
-  .xp-track{height:10px; border-radius:6px; background:var(--surface-3); overflow:hidden;}
-  .xp-fill{height:100%; background:linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 70%, white 30%)); border-radius:6px;}
-  .stat-row{display:flex; gap:22px; flex-wrap:wrap; margin-left:auto;}
-  .stat{text-align:right;}
-  .stat-val{font-family:var(--font-mono); font-weight:500; font-size:20px;}
-  .stat-label{font-size:11px; color:var(--ink-muted); text-transform:uppercase; letter-spacing:0.05em;}
+  .run-chart-wrap{margin-top:4px;}
+  .run-svg{width:100%; height:auto; display:block; overflow:visible;}
+  .run-legend{display:flex; gap:16px; font-size:11px; color:var(--ink-muted); margin-top:6px;}
+  .run-legend span{display:inline-flex; align-items:center; gap:5px;}
+  .run-swatch{width:14px; height:2.5px; border-radius:2px; display:inline-block;}
 
-  /* ---- trend chart ---- */
-  .trend-svg{width:100%; height:auto; display:block;}
-  .trend-axis-label{fill:var(--ink-muted); font-size:10px; font-family:var(--font-mono);}
-  .trend-grid{stroke:var(--grid); stroke-width:1;}
-  .trend-line{fill:none; stroke:var(--target); stroke-width:2.5; stroke-linecap:round; stroke-linejoin:round;}
-  .trend-area{fill:var(--target); opacity:0.08;}
-  .trend-dot{fill:var(--surface);}
-  .trend-label{font-family:var(--font-mono); font-size:12px; fill:var(--ink); font-weight:500;}
-  .trend-badgetag{font-size:15px; fill:var(--accent); font-family:var(--font-body);}
-
-  /* ---- badge case ---- */
-  .badge-grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(160px,1fr)); gap:10px;}
-  .badge{
-    border:1px solid var(--border); border-radius:10px; padding:10px 12px;
-    background:var(--surface-2);
+  .hud{
+    text-align:center; font-family:var(--font-display); font-weight:700; font-size:20px;
+    letter-spacing:0.03em; height:30px; line-height:30px; margin-top:10px; border-radius:8px;
   }
-  .badge.locked{opacity:0.45;}
-  .badge-name{font-weight:600; font-size:13px; display:flex; align-items:center; gap:6px;}
-  .badge-desc{font-size:11.5px; color:var(--ink-muted); margin-top:3px; line-height:1.35;}
-  .badge-check{width:15px; height:15px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:10px; flex-shrink:0;}
-  .badge.earned .badge-check{background:var(--good); color:#fff;}
-  .badge.locked .badge-check{background:var(--surface-3); color:var(--ink-muted); border:1px solid var(--border);}
+  .hud.hud-good{color:var(--good);}
+  .hud.hud-warn{color:var(--serious);}
+  .hud.hud-critical{color:var(--critical);}
+  .hud.hud-idle{color:var(--ink-muted); font-weight:500; font-size:13px;}
 
-  /* ---- lap tabs ---- */
-  .lap-tabs{display:flex; gap:8px; overflow-x:auto; padding-bottom:2px; margin-bottom:14px;}
-  .lap-tab{
-    font-family:var(--font-mono); font-size:13px; padding:8px 14px; border-radius:999px;
-    border:1px solid var(--border); background:var(--surface); color:var(--ink-2);
-    cursor:pointer; white-space:nowrap; flex-shrink:0;
+  .pedal-row{display:flex; align-items:center; gap:16px; margin-top:16px;}
+  .pedal{
+    position:relative; width:74px; height:170px; border-radius:12px;
+    background:var(--surface-2); border:1px solid var(--border); overflow:hidden;
+    touch-action:none; cursor:pointer; flex-shrink:0;
   }
-  .lap-tab .score-chip{margin-left:7px; font-weight:600;}
-  .lap-tab[aria-selected="true"]{background:var(--ink); color:var(--page); border-color:var(--ink);}
-  :root[data-theme="dark"] .lap-tab[aria-selected="true"],
-  :root:not([data-theme="light"]) .lap-tab[aria-selected="true"]{background:var(--accent); color:var(--accent-ink); border-color:var(--accent);}
-  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .lap-tab[aria-selected="true"]{background:var(--accent); color:var(--accent-ink);} }
-
-  /* ---- lap summary ---- */
-  .lap-summary{display:flex; align-items:center; gap:18px; flex-wrap:wrap; margin-bottom:16px;}
-  .hero-score{font-family:var(--font-display); font-weight:700; font-size:52px; line-height:1;}
-  .hero-score .of100{font-size:20px; color:var(--ink-muted); font-weight:500;}
-  .lap-meta{display:flex; flex-direction:column; gap:2px; font-size:12.5px; color:var(--ink-2);}
-  .chip{
-    font-family:var(--font-mono); font-size:11.5px; padding:3px 9px; border-radius:999px;
-    border:1px solid var(--border); background:var(--surface-2); display:inline-flex; align-items:center; gap:5px;
+  .pedal-fill{position:absolute; left:0; right:0; bottom:0; background:var(--user); opacity:0.85;}
+  .pedal-marks{position:absolute; inset:0; display:flex; flex-direction:column; justify-content:space-between; padding-block:6px; pointer-events:none;}
+  .pedal-marks div{border-top:1px dashed var(--border); height:0;}
+  .pedal-label{
+    position:absolute; top:8px; left:0; right:0; text-align:center; font-family:var(--font-mono);
+    font-size:10px; letter-spacing:0.06em; color:var(--ink-muted); z-index:2;
   }
-  .new-badge-row{display:flex; gap:6px; flex-wrap:wrap;}
+  .pedal-hint{font-size:12.5px; color:var(--ink-muted); line-height:1.5;}
 
-  /* ---- corner cards ---- */
-  .corner-grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(260px,1fr)); gap:14px;}
-  .corner-card{border:1px solid var(--border); border-radius:12px; background:var(--surface); padding:14px 16px; display:flex; flex-direction:column; gap:10px;}
-  .corner-head{display:flex; justify-content:space-between; align-items:baseline;}
-  .corner-name{font-family:var(--font-display); font-weight:600; font-size:16px;}
-  .corner-score{font-family:var(--font-mono); font-weight:600; font-size:19px;}
-  .phase-bar{display:flex; height:7px; border-radius:4px; overflow:hidden; gap:2px;}
-  .phase-seg{flex:1; border-radius:2px;}
-  .phase-legend{display:flex; justify-content:space-between; font-size:9.5px; color:var(--ink-muted); text-transform:uppercase; letter-spacing:0.03em;}
-  .tips{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px;}
-  .tips li{font-size:12.5px; line-height:1.45; color:var(--ink-2); padding-left:14px; position:relative;}
-  .tips li::before{content:"–"; position:absolute; left:0; color:var(--ink-muted);}
-  .tips li.positive{color:var(--good);}
-  .tips li.positive::before{content:"✓"; color:var(--good);}
-
-  details.expert{border-top:1px dashed var(--border); padding-top:8px;}
-  details.expert > summary{cursor:pointer; font-size:12px; font-weight:600; color:var(--ink-muted); text-transform:uppercase; letter-spacing:0.05em; list-style:none;}
-  details.expert > summary::-webkit-details-marker{display:none;}
-  details.expert > summary::before{content:"▸ "; }
-  details.expert[open] > summary::before{content:"▾ "; }
-  .metric-table{width:100%; border-collapse:collapse; font-family:var(--font-mono); font-size:11.5px; margin-top:8px;}
-  .metric-table th{text-align:right; font-weight:500; color:var(--ink-muted); padding:3px 6px; font-size:10px; text-transform:uppercase;}
-  .metric-table th:first-child, .metric-table td:first-child{text-align:left;}
-  .metric-table td{text-align:right; padding:3px 6px; border-top:1px solid var(--grid);}
-  .metric-table .phase-row td{padding-top:8px; font-weight:600; color:var(--ink-2); text-transform:uppercase; font-size:9.5px; letter-spacing:0.04em; border-top:none;}
-  .score-pill{display:inline-block; min-width:26px; text-align:center; border-radius:5px; padding:1px 4px; font-weight:600; color:#fff;}
-  .trace-wrap{margin-top:8px; overflow-x:auto;}
-  .trace-svg{width:100%; height:auto; min-width:320px; display:block;}
-  .trace-legend{display:flex; gap:14px; font-size:10.5px; color:var(--ink-muted); margin-top:4px; flex-wrap:wrap;}
-  .trace-legend span{display:inline-flex; align-items:center; gap:4px;}
-  .swatch{width:14px; height:2.5px; border-radius:2px; display:inline-block;}
-  .swatch.dash{background:repeating-linear-gradient(90deg, currentColor 0 4px, transparent 4px 7px);}
-
-  footer{margin-top:28px; font-size:11.5px; color:var(--ink-muted); text-align:center;}
-
-  @media (max-width:480px){
-    .level-num{font-size:36px;}
-    .hero-score{font-size:40px;}
-    .stat-row{margin-left:0; gap:16px;}
+  .results-score{font-family:var(--font-display); font-weight:700; font-size:46px; text-align:center; margin-top:4px;}
+  .results-tips{list-style:none; margin:16px 0 0; padding:0; display:flex; flex-direction:column; gap:8px;}
+  .results-tips li{font-size:13.5px; line-height:1.45; padding-left:15px; position:relative; color:var(--ink-2);}
+  .results-tips li::before{content:"–"; position:absolute; left:0; color:var(--ink-muted);}
+  .results-tips li.positive::before{content:"✓"; color:var(--good);}
+  .results-tips li.positive{color:var(--good);}
+  .results-actions{display:flex; gap:8px; margin-top:18px;}
+  .results-actions button{
+    flex:1; font-family:var(--font-display); font-weight:600; font-size:14px;
+    border-radius:9px; padding:11px; cursor:pointer; border:1px solid var(--border);
+    background:var(--surface-2); color:var(--ink);
   }
+  .results-actions button.primary{background:var(--ink); color:var(--page); border-color:var(--ink);}
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .results-actions button.primary{background:var(--accent); color:var(--accent-ink);} }
+  :root[data-theme="dark"] .results-actions button.primary{background:var(--accent); color:var(--accent-ink);}
 </style>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 
-<div class="masthead">
-  <div>
-    <div class="wordmark">APEX<span>·</span>COACH</div>
-    <div class="tagline">Corner-by-corner brake, apex &amp; throttle coaching from your iRacing telemetry.</div>
+<div class="top">
+  <div class="wordmark">APEX<span>·</span>COACH</div>
+  <div class="level-line" id="level-line"></div>
+</div>
+
+<section class="practice">
+  <h2>Practice: replicate the brake trace</h2>
+  <p class="muted">Pick a corner, then hold the pedal and match the target's brake pressure in real time.</p>
+  <div class="corner-picker" id="corner-picker"></div>
+  <button class="btn-primary" id="start-practice">Start practice run</button>
+</section>
+
+<section>
+  <h2>Session</h2>
+  <div id="session-list"></div>
+</section>
+
+<section>
+  <button class="badges-toggle" id="badges-toggle">
+    <span>🏆</span><span id="badges-summary"></span><span class="chev" id="badges-chev">▾</span>
+  </button>
+  <div class="badges-list" id="badges-list" hidden></div>
+</section>
+
+<footer>Sample session from a synthetic 4-corner test lap — scoring pipeline output, not fabricated numbers. Practice-run scoring is a simplified, client-side approximation of the same model.</footer>
+
+<div class="overlay" id="practice-overlay" hidden>
+  <div class="overlay-panel">
+    <button class="overlay-close" id="overlay-close" aria-label="Close practice">×</button>
+    <div id="overlay-body"></div>
   </div>
 </div>
-
-<div class="panel driver" id="driver-panel"></div>
-<div class="panel">
-  <p class="panel-title">Score by lap — this session</p>
-  <div id="trend-chart"></div>
-</div>
-<div class="panel">
-  <p class="panel-title">Badges</p>
-  <div class="badge-grid" id="badge-grid"></div>
-</div>
-
-<div class="lap-tabs" id="lap-tabs"></div>
-<div class="lap-summary" id="lap-summary"></div>
-<div class="corner-grid" id="corner-grid"></div>
-
-<footer>Sample session from a synthetic 4-corner test lap — scoring pipeline output, not fabricated numbers. Load your own .ibt files with the Step 1–3 scripts to replace this data.</footer>
 
 <script id="dashboard-data" type="application/json">__DASHBOARD_DATA__</script>
 <script>
@@ -202,7 +235,6 @@
     var rank = ((Math.max(level,1)-1) % LEVELS_PER_TIER) + 1;
     return TIERS[tierIndex] + " " + rank;
   }
-
   function band(score){
     if (score >= 90) return "good";
     if (score >= 75) return "warning";
@@ -211,231 +243,349 @@
   }
   var BAND_COLOR = {good:"var(--good)", warning:"var(--warning)", serious:"var(--serious)", critical:"var(--critical)"};
 
-  var PHASES = [["entry","Entry"],["brake_hit","Brake"],["release","Release"],["apex","Apex"],["exit","Exit"]];
-
-  function el(tag, cls, html){
-    var e = document.createElement(tag);
-    if (cls) e.className = cls;
-    if (html !== undefined) e.innerHTML = html;
-    return e;
-  }
-
-  // ---------- Driver panel ----------
-  function renderDriver(){
+  // ---------- header ----------
+  function renderHeader(){
     var latest = DATA.laps[DATA.laps.length - 1].xp_result;
     var lvl = latest.level_after;
-    var nextTitle = lvl.xp_for_next_level > 0 ? levelTitle(lvl.level + 1) : "Max level";
-    var wrap = document.getElementById('driver-panel');
-    wrap.innerHTML =
-      '<div class="level-block">' +
-        '<div><div class="level-tier">Level</div><div class="level-num tnum">' + lvl.level + '</div></div>' +
-        '<div class="level-title">' + lvl.title + '</div>' +
-      '</div>' +
-      '<div class="xp-wrap">' +
-        '<div class="xp-caption"><span>' + lvl.xp_into_level + ' / ' + (lvl.xp_for_next_level || '–') + ' XP</span><span>' +
-          (lvl.xp_for_next_level ? 'Next: ' + nextTitle : 'Max level reached') + '</span></div>' +
-        '<div class="xp-track"><div class="xp-fill" style="width:' + (lvl.progress_fraction*100).toFixed(0) + '%"></div></div>' +
-      '</div>' +
-      '<div class="stat-row">' +
-        '<div class="stat"><div class="stat-val tnum">' + latest.total_xp + '</div><div class="stat-label">Total XP</div></div>' +
-        '<div class="stat"><div class="stat-val tnum">' + latest.laps_scored + '</div><div class="stat-label">Laps scored</div></div>' +
-        '<div class="stat"><div class="stat-val tnum">' + latest.best_overall_score.toFixed(0) + '</div><div class="stat-label">Best score</div></div>' +
+    document.getElementById('level-line').innerHTML =
+      '<span class="level-chip">' + lvl.title + '</span>' +
+      '<div class="xp-mini"><div class="xp-mini-fill" style="width:' + (lvl.progress_fraction*100).toFixed(0) + '%"></div></div>' +
+      '<span class="xp-text tnum">' + latest.total_xp + ' XP</span>';
+  }
+
+  // ---------- session list ----------
+  function renderSessionList(){
+    var wrap = document.getElementById('session-list');
+    wrap.innerHTML = DATA.laps.map(function(l){
+      var r = l.report;
+      var corners = r.zones.map(function(z){ return z.corner_label.replace('Corner @ ','') + ' ' + z.overall_score.toFixed(0); }).join('  ·  ');
+      return '<div class="lap-row">' +
+        '<div class="lap-row-left"><span class="lap-name">Lap ' + l.lap_number + '</span></div>' +
+        '<div style="text-align:right"><div class="lap-score tnum" style="color:' + BAND_COLOR[band(r.overall_score)] + '">' + r.overall_score.toFixed(0) + '</div>' +
+        '<div class="lap-corners">' + corners + '</div></div>' +
       '</div>';
+    }).join('');
   }
 
-  // ---------- Trend chart ----------
-  function renderTrend(){
-    var laps = DATA.laps;
-    var W = 760, H = 160, M = {left:34, right:16, top:36, bottom:26};
-    var plotW = W - M.left - M.right, plotH = H - M.top - M.bottom;
-    var n = laps.length;
-    var xAt = function(i){ return n === 1 ? M.left + plotW/2 : M.left + (i/(n-1)) * plotW; };
-    var yAt = function(v){ return M.top + (1 - v/100) * plotH; };
-
-    var gridLines = [0,25,50,75,100].map(function(v){
-      var y = yAt(v);
-      return '<line class="trend-grid" x1="'+M.left+'" x2="'+(W-M.right)+'" y1="'+y+'" y2="'+y+'"/>' +
-             '<text class="trend-axis-label" x="'+(M.left-6)+'" y="'+(y+3)+'" text-anchor="end">'+v+'</text>';
-    }).join('');
-
-    var pathD = laps.map(function(l,i){ return (i===0?'M':'L') + xAt(i).toFixed(1) + ',' + yAt(l.report.overall_score).toFixed(1); }).join(' ');
-    var areaD = pathD + ' L' + xAt(n-1).toFixed(1) + ',' + yAt(0) + ' L' + xAt(0).toFixed(1) + ',' + yAt(0) + ' Z';
-
-    var dots = laps.map(function(l,i){
-      var x = xAt(i), y = yAt(l.report.overall_score);
-      var badgeTag = l.xp_result.new_badges.length ? '<text class="trend-badgetag" x="'+x+'" y="'+(y-30)+'" text-anchor="middle">★</text>' : '';
-      return '<circle cx="'+x+'" cy="'+y+'" r="9" class="trend-dot" stroke="var(--target)" stroke-width="2.5"/>' +
-             '<text class="trend-label" x="'+x+'" y="'+(y-15)+'" text-anchor="middle">'+l.report.overall_score.toFixed(0)+'</text>' +
-             badgeTag +
-             '<text class="trend-axis-label" x="'+x+'" y="'+(H-6)+'" text-anchor="middle">Lap '+l.lap_number+'</text>';
-    }).join('');
-
-    var svg =
-      '<svg class="trend-svg" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Overall corner score by lap">' +
-        gridLines +
-        '<path class="trend-area" d="'+areaD+'"/>' +
-        '<path class="trend-line" d="'+pathD+'"/>' +
-        dots +
-      '</svg>';
-    document.getElementById('trend-chart').innerHTML = svg;
-  }
-
-  // ---------- Badge case ----------
+  // ---------- badges ----------
   function renderBadges(){
     var latest = DATA.laps[DATA.laps.length - 1].xp_result;
-    var grid = document.getElementById('badge-grid');
-    grid.innerHTML = latest.badges.map(function(b){
-      return '<div class="badge ' + (b.earned ? 'earned' : 'locked') + '">' +
-        '<div class="badge-name"><span class="badge-check">' + (b.earned ? '✓' : '') + '</span>' + b.name + '</div>' +
-        '<div class="badge-desc">' + b.description + '</div>' +
-      '</div>';
+    var earnedCount = latest.badges.filter(function(b){ return b.earned; }).length;
+    document.getElementById('badges-summary').textContent = earnedCount + ' / ' + latest.badges.length + ' badges';
+    var list = document.getElementById('badges-list');
+    list.innerHTML = latest.badges.map(function(b){
+      return '<div class="badge-row ' + (b.earned ? 'earned' : 'locked') + '"><span class="badge-dot"></span>' +
+        '<span><b>' + b.name + '</b> — ' + b.description + '</span></div>';
     }).join('');
-  }
-
-  // ---------- Lap tabs + detail ----------
-  var selectedLap = DATA.laps.length; // default to most recent
-
-  function renderTabs(){
-    var tabs = document.getElementById('lap-tabs');
-    tabs.innerHTML = '';
-    DATA.laps.forEach(function(l){
-      var b = el('button', 'lap-tab');
-      b.setAttribute('aria-selected', String(l.lap_number === selectedLap));
-      b.innerHTML = 'Lap ' + l.lap_number + '<span class="score-chip tnum" style="color:' + BAND_COLOR[band(l.report.overall_score)] + '">' + l.report.overall_score.toFixed(0) + '</span>';
-      b.addEventListener('click', function(){ selectedLap = l.lap_number; renderAll(); });
-      tabs.appendChild(b);
+    document.getElementById('badges-toggle').addEventListener('click', function(){
+      var open = !list.hidden;
+      list.hidden = open;
+      document.getElementById('badges-chev').textContent = open ? '▾' : '▴';
     });
   }
 
-  function renderLapSummary(lapData){
-    var r = lapData.report, xp = lapData.xp_result;
-    var b = band(r.overall_score);
-    var badgesHtml = xp.new_badges.length
-      ? xp.new_badges.map(function(nb){ return '<span class="chip">★ ' + nb.name + '</span>'; }).join('')
-      : '<span class="chip">No new badges this lap</span>';
-    document.getElementById('lap-summary').innerHTML =
-      '<div class="hero-score tnum" style="color:' + BAND_COLOR[b] + '">' + r.overall_score.toFixed(0) + '<span class="of100">/100</span></div>' +
-      '<div class="lap-meta">' +
-        '<div>' + r.user_lap + '</div>' +
-        '<div style="color:var(--ink-muted)">vs ' + r.target_lap + '</div>' +
+  // ================= PRACTICE MODE =================
+  var corners = DATA.laps[0].report.zones.map(function(z){
+    return { label: z.corner_label, target: z.target_trace.brake };
+  });
+
+  var P = {
+    index: 0,
+    duration: 4200,
+    samples: [],
+    raf: null,
+    startTime: 0,
+    pointerActive: false,
+    pointerValue: 0,
+    timers: []
+  };
+
+  var overlay = document.getElementById('practice-overlay');
+  var overlayBody = document.getElementById('overlay-body');
+
+  function renderCornerPicker(){
+    var picker = document.getElementById('corner-picker');
+    picker.innerHTML = corners.map(function(c,i){
+      return '<button class="corner-btn" data-i="' + i + '" aria-pressed="' + (i===P.index) + '">' + c.label + '</button>';
+    }).join('');
+    Array.prototype.forEach.call(picker.querySelectorAll('.corner-btn'), function(btn){
+      btn.addEventListener('click', function(){
+        P.index = parseInt(btn.getAttribute('data-i'), 10);
+        renderCornerPicker();
+      });
+    });
+  }
+
+  function clearTimers(){
+    P.timers.forEach(function(t){ clearTimeout(t); });
+    P.timers = [];
+    if (P.raf) { cancelAnimationFrame(P.raf); P.raf = null; }
+  }
+
+  function openPractice(){
+    overlay.hidden = false;
+    startCountdown();
+  }
+  function closePractice(){
+    clearTimers();
+    overlay.hidden = true;
+  }
+
+  function startCountdown(){
+    clearTimers();
+    var steps = ["3", "2", "1", "BRAKE!"];
+    var i = 0;
+    function show(){
+      overlayBody.innerHTML =
+        '<div class="overlay-title">' + corners[P.index].label + '</div>' +
+        '<div class="overlay-sub">Get ready — hold the pedal to match the target.</div>' +
+        '<div class="countdown-num">' + steps[i] + '</div>';
+      i++;
+      if (i < steps.length){
+        P.timers.push(setTimeout(show, 650));
+      } else {
+        P.timers.push(setTimeout(startRun, 500));
+      }
+    }
+    show();
+  }
+
+  // ---- chart geometry (shared by running + results view) ----
+  var CW = 600, CH = 190, CM = {left:32, right:12, top:12, bottom:14};
+  var plotW = CW - CM.left - CM.right, plotH = CH - CM.top - CM.bottom;
+  function xAt(p){ return CM.left + p * plotW; }
+  function yAt(v){ return CM.top + (1 - v) * plotH; }
+  function pathFromArray(arr){
+    return arr.map(function(v,i){ return (i===0?'M':'L') + xAt(i/(arr.length-1)).toFixed(1) + ',' + yAt(v).toFixed(1); }).join(' ');
+  }
+  function pathFromSamples(samples){
+    if (!samples.length) return '';
+    return samples.map(function(s,i){ return (i===0?'M':'L') + xAt(s.p).toFixed(1) + ',' + yAt(s.v).toFixed(1); }).join(' ');
+  }
+  function chartChrome(){
+    var lines = [0, 0.5, 1].map(function(v){
+      var y = yAt(v);
+      return '<line x1="' + CM.left + '" x2="' + (CW-CM.right) + '" y1="' + y + '" y2="' + y + '" stroke="var(--grid)" stroke-width="1"/>' +
+        '<text x="' + (CM.left-6) + '" y="' + (y+3) + '" text-anchor="end" font-size="10" font-family="var(--font-mono)" fill="var(--ink-muted)">' + v + '</text>';
+    }).join('');
+    return lines;
+  }
+
+  var userPathEl, playheadEl, hudEl, pedalFillEl, pedalEl;
+
+  function startRun(){
+    clearTimers();
+    P.samples = [];
+    P.startTime = 0;
+    P.pointerActive = false;
+    P.pointerValue = 0;
+
+    var targetD = pathFromArray(corners[P.index].target);
+
+    overlayBody.innerHTML =
+      '<div class="overlay-title">' + corners[P.index].label + '</div>' +
+      '<div class="overlay-sub">Hold and drag the pedal to match the blue target line.</div>' +
+      '<div class="run-chart-wrap">' +
+        '<svg class="run-svg" viewBox="0 0 ' + CW + ' ' + CH + '">' +
+          chartChrome() +
+          '<path d="' + targetD + '" fill="none" stroke="var(--target)" stroke-width="2.5"/>' +
+          '<path id="user-path" d="" fill="none" stroke="var(--user)" stroke-width="2.5"/>' +
+          '<line id="playhead" x1="' + CM.left + '" x2="' + CM.left + '" y1="' + CM.top + '" y2="' + (CH-CM.bottom) + '" stroke="var(--ink-muted)" stroke-width="1.5" stroke-dasharray="3 3"/>' +
+        '</svg>' +
+        '<div class="run-legend">' +
+          '<span><span class="run-swatch" style="background:var(--target)"></span>Target</span>' +
+          '<span><span class="run-swatch" style="background:var(--user)"></span>You</span>' +
+        '</div>' +
       '</div>' +
-      '<div class="lap-meta">' +
-        '<div class="chip tnum">+' + xp.xp_earned + ' XP</div>' +
-      '</div>' +
-      '<div class="new-badge-row">' + badgesHtml + '</div>';
+      '<div class="hud hud-idle" id="hud">get ready…</div>' +
+      '<div class="pedal-row">' +
+        '<div class="pedal" id="pedal">' +
+          '<div class="pedal-label">BRAKE</div>' +
+          '<div class="pedal-marks"><div></div><div></div><div></div></div>' +
+          '<div class="pedal-fill" id="pedal-fill" style="height:0%"></div>' +
+        '</div>' +
+        '<p class="pedal-hint">Press and hold anywhere on the pedal, then drag up or down — further down is more brake pressure. Release to let off.</p>' +
+      '</div>';
+
+    userPathEl = document.getElementById('user-path');
+    playheadEl = document.getElementById('playhead');
+    hudEl = document.getElementById('hud');
+    pedalFillEl = document.getElementById('pedal-fill');
+    pedalEl = document.getElementById('pedal');
+
+    attachPedalEvents();
+    P.raf = requestAnimationFrame(frameLoop);
   }
 
-  function phaseSegments(zone){
-    var sums = {}, counts = {};
-    zone.metrics.forEach(function(m){
-      sums[m.phase] = (sums[m.phase] || 0) + m.score;
-      counts[m.phase] = (counts[m.phase] || 0) + 1;
+  function attachPedalEvents(){
+    function valueFromEvent(e){
+      var rect = pedalEl.getBoundingClientRect();
+      var y = e.clientY - rect.top;
+      return Math.max(0, Math.min(1, 1 - (y / rect.height)));
+    }
+    pedalEl.addEventListener('pointerdown', function(e){
+      P.pointerActive = true;
+      try { pedalEl.setPointerCapture(e.pointerId); } catch(err){}
+      P.pointerValue = valueFromEvent(e);
     });
-    return PHASES.map(function(p){
-      var key = p[0];
-      var avg = sums[key] !== undefined ? sums[key] / counts[key] : null;
-      return { key: key, label: p[1], avg: avg };
+    pedalEl.addEventListener('pointermove', function(e){
+      if (!P.pointerActive) return;
+      P.pointerValue = valueFromEvent(e);
     });
+    function end(){ P.pointerActive = false; P.pointerValue = 0; }
+    pedalEl.addEventListener('pointerup', end);
+    pedalEl.addEventListener('pointercancel', end);
   }
 
-  function renderTraceSvg(zone){
-    var W = 440, H = 150, M = {left:30, right:22, top:10, bottom:20};
-    var plotW = W - M.left - M.right, plotH = H - M.top - M.bottom;
-    var allDist = zone.user_trace.lap_dist.concat(zone.target_trace.lap_dist);
-    var minX = Math.min.apply(null, allDist), maxX = Math.max.apply(null, allDist);
-    var span = Math.max(1e-6, maxX - minX);
-    var xAt = function(d){ return M.left + ((d - minX) / span) * plotW; };
-    var yAt = function(v){ return M.top + (1 - v) * plotH; };
+  function targetAt(arr, p){
+    var n = arr.length;
+    var idx = p * (n - 1);
+    var i0 = Math.floor(idx), i1 = Math.min(n - 1, i0 + 1);
+    var frac = idx - i0;
+    return arr[i0] * (1 - frac) + arr[i1] * frac;
+  }
 
-    function linePath(dist, val){
-      return dist.map(function(d,i){ return (i===0?'M':'L') + xAt(d).toFixed(1) + ',' + yAt(val[i]).toFixed(1); }).join(' ');
+  function frameLoop(ts){
+    if (!P.startTime) P.startTime = ts;
+    var elapsed = ts - P.startTime;
+    var progress = Math.min(1, elapsed / P.duration);
+    var v = P.pointerActive ? P.pointerValue : 0;
+    P.samples.push({ p: progress, v: v });
+
+    pedalFillEl.style.height = (v * 100).toFixed(0) + '%';
+    userPathEl.setAttribute('d', pathFromSamples(P.samples));
+    var px = xAt(progress);
+    playheadEl.setAttribute('x1', px);
+    playheadEl.setAttribute('x2', px);
+
+    var tNow = targetAt(corners[P.index].target, progress);
+    var diff = v - tNow;
+    var bpIdx = corners[P.index].target.findIndex(function(x){ return x >= 0.08; });
+    var bp = bpIdx < 0 ? 1 : bpIdx / (corners[P.index].target.length - 1);
+    if (tNow < 0.06 && v < 0.06){
+      hudEl.className = 'hud hud-idle'; hudEl.textContent = progress < bp - 0.03 ? 'wait for it…' : '';
+    } else if (progress >= bp && progress < bp + 0.05 && v < 0.08){
+      hudEl.className = 'hud hud-critical'; hudEl.textContent = 'BRAKE NOW';
+    } else if (diff > 0.12){
+      hudEl.className = 'hud hud-warn'; hudEl.textContent = 'EASE OFF';
+    } else if (diff < -0.12 && tNow > 0.06){
+      hudEl.className = 'hud hud-warn'; hudEl.textContent = 'MORE BRAKE';
+    } else if (tNow > 0.06){
+      hudEl.className = 'hud hud-good'; hudEl.textContent = 'ON TARGET';
+    } else {
+      hudEl.className = 'hud hud-idle'; hudEl.textContent = '';
     }
 
-    var gridLines = [0,0.5,1].map(function(v){
-      var y = yAt(v);
-      return '<line class="trend-grid" x1="'+M.left+'" x2="'+(W-M.right)+'" y1="'+y+'" y2="'+y+'"/>' +
-             '<text class="trend-axis-label" x="'+(M.left-4)+'" y="'+(y+3)+'" text-anchor="end">'+v+'</text>';
-    }).join('');
-    var xTicks = '<text class="trend-axis-label" x="'+M.left+'" y="'+(H-4)+'" text-anchor="start">'+minX.toFixed(0)+'m</text>' +
-                 '<text class="trend-axis-label" x="'+(W-M.right)+'" y="'+(H-4)+'" text-anchor="end">'+maxX.toFixed(0)+'m</text>';
-
-    var paths =
-      '<path d="'+linePath(zone.target_trace.lap_dist, zone.target_trace.brake)+'" fill="none" stroke="var(--target)" stroke-width="2"/>' +
-      '<path d="'+linePath(zone.target_trace.lap_dist, zone.target_trace.throttle)+'" fill="none" stroke="var(--target)" stroke-width="1.5" stroke-dasharray="4 3" opacity="0.75"/>' +
-      '<path d="'+linePath(zone.user_trace.lap_dist, zone.user_trace.brake)+'" fill="none" stroke="var(--user)" stroke-width="2"/>' +
-      '<path d="'+linePath(zone.user_trace.lap_dist, zone.user_trace.throttle)+'" fill="none" stroke="var(--user)" stroke-width="1.5" stroke-dasharray="4 3" opacity="0.75"/>';
-
-    return '<svg class="trace-svg" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Brake and throttle trace for this corner">' +
-      gridLines + xTicks + paths + '</svg>';
+    if (progress < 1){
+      P.raf = requestAnimationFrame(frameLoop);
+    } else {
+      finishRun();
+    }
   }
 
-  function renderMetricTable(zone){
-    var rows = '', lastPhase = null;
-    zone.metrics.forEach(function(m){
-      if (m.phase !== lastPhase){
-        var label = PHASES.filter(function(p){return p[0]===m.phase;})[0][1];
-        rows += '<tr class="phase-row"><td colspan="5">' + label + '</td></tr>';
-        lastPhase = m.phase;
+  function scoreRun(){
+    var target = corners[P.index].target;
+    var GRID = 60;
+    var targetGrid = [], userGrid = [];
+    for (var i = 0; i < GRID; i++){
+      var p = i / (GRID - 1);
+      targetGrid.push(targetAt(target, p));
+      var v = 0;
+      for (var j = P.samples.length - 1; j >= 0; j--){
+        if (P.samples[j].p <= p){ v = P.samples[j].v; break; }
       }
-      var unit = m.unit ? (' ' + m.unit) : '';
-      rows += '<tr><td>' + m.label + '</td>' +
-        '<td class="tnum">' + m.user_value.toFixed(2) + unit + '</td>' +
-        '<td class="tnum">' + m.target_value.toFixed(2) + unit + '</td>' +
-        '<td class="tnum">' + (m.delta >= 0 ? '+' : '') + m.delta.toFixed(2) + '</td>' +
-        '<td><span class="score-pill tnum" style="background:' + BAND_COLOR[band(m.score)] + '">' + m.score.toFixed(0) + '</span></td></tr>';
-    });
-    return '<table class="metric-table"><thead><tr><th>Metric</th><th>You</th><th>Target</th><th>Delta</th><th>Score</th></tr></thead><tbody>' + rows + '</tbody></table>';
+      userGrid.push(v);
+    }
+    function firstAbove(arr, thresh){
+      for (var k = 0; k < arr.length; k++){ if (arr[k] >= thresh) return k / (arr.length - 1); }
+      return 1;
+    }
+    var targetBP = firstAbove(targetGrid, 0.08);
+    var userBP = firstAbove(userGrid, 0.08);
+    var bpDeltaSec = (userBP - targetBP) * P.duration / 1000;
+
+    var targetPeak = Math.max.apply(null, targetGrid);
+    var userPeak = Math.max.apply(null, userGrid);
+    var peakIdxUser = userGrid.indexOf(userPeak);
+    var peakIdxTarget = targetGrid.indexOf(targetPeak);
+    var ttpDeltaSec = ((peakIdxUser - peakIdxTarget) / (GRID - 1)) * P.duration / 1000;
+
+    var reversals = 0, tv = 0;
+    for (var k2 = peakIdxUser + 1; k2 < GRID; k2++){
+      var d = userGrid[k2] - userGrid[k2 - 1];
+      if (d > 0.02) reversals++;
+      tv += Math.abs(d);
+    }
+    var net = userGrid[peakIdxUser] - userGrid[GRID - 1];
+    var roughness = Math.max(0, tv - net);
+
+    function scoreOf(diff, tol, pen){ var d = Math.abs(diff); return d <= tol ? 100 : Math.max(0, 100 - pen * (d - tol)); }
+    var bpScore = scoreOf(bpDeltaSec, 0.12, 150);
+    var peakScore = scoreOf(userPeak - targetPeak, 0.06, 250);
+    var ttpScore = scoreOf(ttpDeltaSec, 0.12, 150);
+    var smoothScore = Math.max(0, 100 - 20 * reversals - 200 * Math.max(0, roughness - 0.05));
+    var overall = (bpScore + peakScore + ttpScore + smoothScore) / 4;
+
+    var tips = [];
+    if (bpScore < 85) tips.push(bpDeltaSec > 0
+      ? 'You braked ' + bpDeltaSec.toFixed(2) + 's late — try reacting a touch sooner.'
+      : 'You braked ' + Math.abs(bpDeltaSec).toFixed(2) + 's early — hold off a little longer.');
+    if (peakScore < 85) tips.push(userPeak < targetPeak
+      ? 'Your peak pressure was too soft (' + (userPeak*100).toFixed(0) + '% vs ' + (targetPeak*100).toFixed(0) + '%) — push harder at the top of the hit.'
+      : 'Your peak pressure overshot the target (' + (userPeak*100).toFixed(0) + '% vs ' + (targetPeak*100).toFixed(0) + '%) — ease back slightly.');
+    if (smoothScore < 85) tips.push(reversals > 0
+      ? 'You re-pressed the pedal ' + reversals + ' time(s) on release — try one smooth taper instead.'
+      : 'Your release was a little jerky — smooth out the taper.');
+    if (!tips.length) tips.push('Great replication — very close to the target trace.');
+
+    return { overall: overall, tips: tips.slice(0, 3), targetGrid: targetGrid, userGrid: userGrid };
   }
 
-  function renderCornerCard(zone){
-    var segs = phaseSegments(zone);
-    var segHtml = segs.map(function(s){
-      var color = s.avg === null ? 'var(--grid)' : BAND_COLOR[band(s.avg)];
-      return '<div class="phase-seg" style="background:' + color + '" title="' + s.label + (s.avg !== null ? ': ' + s.avg.toFixed(0) : '') + '"></div>';
-    }).join('');
-    var legendHtml = segs.map(function(s){ return '<span>' + s.label + '</span>'; }).join('');
-    var tipsHtml = zone.tips.map(function(t){
-      var positive = /nice work/i.test(t);
+  function finishRun(){
+    clearTimers();
+    var result = scoreRun();
+    var b = band(result.overall);
+    var tipsHtml = result.tips.map(function(t){
+      var positive = /Great replication/.test(t);
       return '<li' + (positive ? ' class="positive"' : '') + '>' + t + '</li>';
     }).join('');
 
-    var card = el('div', 'corner-card');
-    card.innerHTML =
-      '<div class="corner-head">' +
-        '<div class="corner-name">' + zone.corner_label + '</div>' +
-        '<div class="corner-score tnum" style="color:' + BAND_COLOR[band(zone.overall_score)] + '">' + zone.overall_score.toFixed(0) + '</div>' +
-      '</div>' +
-      '<div><div class="phase-bar">' + segHtml + '</div><div class="phase-legend">' + legendHtml + '</div></div>' +
-      '<ul class="tips">' + tipsHtml + '</ul>' +
-      '<details class="expert"><summary>Expert: full trace &amp; metrics</summary>' +
-        '<div class="trace-wrap">' + renderTraceSvg(zone) + '</div>' +
-        '<div class="trace-legend">' +
-          '<span><span class="swatch" style="background:var(--user)"></span>You — brake</span>' +
-          '<span><span class="swatch dash" style="color:var(--user)"></span>You — throttle</span>' +
-          '<span><span class="swatch" style="background:var(--target)"></span>Target — brake</span>' +
-          '<span><span class="swatch dash" style="color:var(--target)"></span>Target — throttle</span>' +
+    overlayBody.innerHTML =
+      '<div class="overlay-title">' + corners[P.index].label + ' — run complete</div>' +
+      '<div class="overlay-sub">How your brake input compared to the target</div>' +
+      '<div class="run-chart-wrap">' +
+        '<svg class="run-svg" viewBox="0 0 ' + CW + ' ' + CH + '">' +
+          chartChrome() +
+          '<path d="' + pathFromArray(result.targetGrid) + '" fill="none" stroke="var(--target)" stroke-width="2.5"/>' +
+          '<path d="' + pathFromArray(result.userGrid) + '" fill="none" stroke="var(--user)" stroke-width="2.5"/>' +
+        '</svg>' +
+        '<div class="run-legend">' +
+          '<span><span class="run-swatch" style="background:var(--target)"></span>Target</span>' +
+          '<span><span class="run-swatch" style="background:var(--user)"></span>You</span>' +
         '</div>' +
-        renderMetricTable(zone) +
-      '</details>';
-    return card;
+      '</div>' +
+      '<div class="results-score tnum" style="color:' + BAND_COLOR[b] + '">' + result.overall.toFixed(0) + '</div>' +
+      '<ul class="results-tips">' + tipsHtml + '</ul>' +
+      '<div class="results-actions">' +
+        '<button id="btn-retry">Try again</button>' +
+        '<button id="btn-next" class="primary">Next corner</button>' +
+      '</div>';
+
+    document.getElementById('btn-retry').addEventListener('click', startCountdown);
+    document.getElementById('btn-next').addEventListener('click', function(){
+      P.index = (P.index + 1) % corners.length;
+      renderCornerPicker();
+      startCountdown();
+    });
   }
 
-  function renderCorners(lapData){
-    var grid = document.getElementById('corner-grid');
-    grid.innerHTML = '';
-    lapData.report.zones.forEach(function(zone){ grid.appendChild(renderCornerCard(zone)); });
-  }
+  document.getElementById('start-practice').addEventListener('click', openPractice);
+  document.getElementById('overlay-close').addEventListener('click', closePractice);
+  overlay.addEventListener('click', function(e){ if (e.target === overlay) closePractice(); });
 
-  function renderAll(){
-    renderTabs();
-    var lapData = DATA.laps.filter(function(l){ return l.lap_number === selectedLap; })[0];
-    renderLapSummary(lapData);
-    renderCorners(lapData);
-  }
-
-  renderDriver();
-  renderTrend();
+  renderHeader();
+  renderSessionList();
   renderBadges();
-  renderAll();
+  renderCornerPicker();
 })();
 </script>

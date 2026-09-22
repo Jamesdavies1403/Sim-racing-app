@@ -234,15 +234,33 @@ Level: Rookie 1 (64/300 XP)
 New badge: First Lap Scored — Score your first lap.
 ```
 
-## Step 4: Dashboard
+## Step 4: Dashboard + brake-replication trainer
 
-[`scripts/dashboard.py`](scripts/dashboard.py) builds an HTML dashboard
-from one or more Step 2 reports, applying them through Step 3's progression
-in session order so the page shows XP, level-ups, and badge unlocks as they
-actually happened lap by lap — plus a session score trend, a badge case,
-and a per-corner breakdown (phase bars, tips, and an expert view with the
-full metric table and a brake/throttle trace chart) for whichever lap you
-select.
+[`scripts/dashboard.py`](scripts/dashboard.py) builds a deliberately simple
+HTML dashboard from one or more Step 2 reports, applying them through
+Step 3's progression in session order so the page shows XP, level-ups, and
+badge unlocks as they actually happened lap by lap. The resting page is
+just: a level/XP line, a Practice card, a flat per-lap score list, and a
+collapsed badge count — the detailed per-corner breakdown lives inside
+Practice mode instead of cluttering the review.
+
+**Practice mode** is an interactive trainer, not just a report. Pick a
+corner, and it walks you through:
+
+1. A countdown, then a target brake-pressure trace plays out on a chart.
+2. You hold and drag a pedal control (mouse or touch) in real time to
+   replicate it — dragging further down means more brake pressure.
+3. A live overlay tells you what's happening as you go: "BRAKE NOW" when
+   you're late to the brake point, "MORE BRAKE" / "EASE OFF" when you're
+   off the target pressure, "ON TARGET" when you're matching it.
+4. When the run ends, an overlay shows your trace against the target, a
+   score, and 2–3 plain-English tips (braked early/late, too soft/hard,
+   jerky release) — then Try Again or move to the next corner.
+
+The practice scoring is a simplified, client-side port of the same
+brake-point/peak-pressure/time-to-peak/smoothness model from Step 2 — it
+runs entirely in the browser against the real target traces already in the
+report data, no server or Python involved once the page is built.
 
 ```bash
 # Score each lap of a session first, in order:
@@ -262,5 +280,6 @@ progress rather than resetting each time.
 This is a sample dashboard over synthetic test data — see it at
 https://claude.ai/artifact/QQCdxgBcgqvgVGAg4q8u4w. Next up: scoring the
 rest of the corner for real .ibt sessions end-to-end, a proper apex/corner
-detector, and turning this from a generated HTML page into the actual
-desktop app (XP/badge notifications, a lap browser, live telemetry).
+detector, tying practice-run results back into XP, and turning this from a
+generated HTML page into the actual desktop app (XP/badge notifications, a
+lap browser, live telemetry).
