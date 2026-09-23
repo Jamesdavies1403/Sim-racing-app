@@ -115,12 +115,12 @@ BADGES = {
     },
     "clean_sweep": {
         "name": "Clean Sweep",
-        "description": "Score 95+ overall on a lap.",
+        "description": "Score 95 or higher on a lap.",
         "rule": lambda report, profile: report["overall_score"] >= 95,
     },
     "on_the_money": {
         "name": "On The Money",
-        "description": "Hit the brake point (within tolerance) on every corner of a lap.",
+        "description": "Brake in the right spot on every corner of a lap.",
         "rule": lambda report, profile: _all_zones_score_at_least(report, "brake_point", 95),
     },
     "smooth_operator": {
@@ -130,7 +130,7 @@ BADGES = {
     },
     "apex_hunter": {
         "name": "Apex Hunter",
-        "description": "Match the target's apex speed (within tolerance) on every corner of a lap.",
+        "description": "Match the target's speed through every corner of a lap.",
         "rule": lambda report, profile: _all_zones_score_at_least(report, "apex_speed", 90),
     },
     "clean_exit": {
@@ -145,7 +145,7 @@ BADGES = {
     },
     "on_a_roll": {
         "name": "On a Roll",
-        "description": "Score 80+ overall on 5 laps in a row.",
+        "description": "Score 80 or higher on 5 laps in a row.",
         "rule": lambda report, profile: profile["current_streak_80"] >= 5,
     },
     "century_club": {

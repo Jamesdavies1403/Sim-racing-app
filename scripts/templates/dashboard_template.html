@@ -53,12 +53,12 @@
   .level-line{display:flex; align-items:center; gap:9px;}
   .level-chip{
     font-family:var(--font-display); font-weight:700; font-size:13px;
-    background:var(--ink); color:var(--page); border-radius:999px; padding:4px 11px;
+    background:var(--accent); color:var(--accent-ink); border-radius:999px; padding:4px 11px;
     white-space:nowrap;
   }
   .xp-mini{width:110px; height:6px; border-radius:4px; background:var(--surface-2); overflow:hidden;}
   .xp-mini-fill{height:100%; background:var(--accent);}
-  .xp-text{font-family:var(--font-mono); font-size:11px; color:var(--ink-muted); white-space:nowrap;}
+  .xp-text{font-size:11.5px; color:var(--ink-muted); white-space:nowrap;}
 
   /* ---- section rhythm ---- */
   section{padding-block:22px; border-top:1px solid var(--border);}
@@ -75,27 +75,28 @@
   @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .practice > h2{color:#ffd8bf;} }
   :root[data-theme="dark"] .practice > h2{color:#ffd8bf;}
   .practice .muted{color:inherit; opacity:0.75; margin-top:4px;}
-  .corner-picker{display:flex; gap:7px; flex-wrap:wrap; margin-top:14px;}
+  .corner-picker{display:flex; gap:8px; flex-wrap:wrap; margin-top:14px;}
   .corner-btn{
-    font-family:var(--font-mono); font-size:12.5px; padding:7px 12px; border-radius:8px;
+    font-family:var(--font-body); font-size:13.5px; font-weight:500; padding:9px 14px; border-radius:10px;
     border:1px solid var(--border); background:var(--surface); color:var(--ink-2); cursor:pointer;
+    text-align:left; line-height:1.3;
   }
-  .corner-btn[aria-pressed="true"]{background:var(--ink); color:var(--page); border-color:var(--ink);}
+  .corner-btn .corner-btn-dist{display:block; font-size:10.5px; color:var(--ink-muted); margin-top:1px;}
+  .corner-btn[aria-pressed="true"]{background:var(--accent); color:var(--accent-ink); border-color:var(--accent);}
+  .corner-btn[aria-pressed="true"] .corner-btn-dist{color:inherit; opacity:0.75;}
   .btn-primary{
-    margin-top:16px; font-family:var(--font-display); font-weight:600; font-size:16px;
-    background:var(--ink); color:var(--page); border:none; border-radius:10px;
-    padding:12px 20px; cursor:pointer; width:100%;
+    margin-top:16px; font-family:var(--font-display); font-weight:600; font-size:17px;
+    background:var(--accent); color:var(--accent-ink); border:none; border-radius:10px;
+    padding:13px 20px; cursor:pointer; width:100%;
   }
-  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .btn-primary{background:var(--accent); color:var(--accent-ink);} }
-  :root[data-theme="dark"] .btn-primary{background:var(--accent); color:var(--accent-ink);}
 
   /* ---- session list ---- */
-  .lap-row{display:flex; align-items:baseline; justify-content:space-between; gap:12px; padding-block:9px;}
+  .lap-row{display:flex; align-items:center; justify-content:space-between; gap:12px; padding-block:11px;}
   .lap-row + .lap-row{border-top:1px solid var(--grid);}
-  .lap-row-left{display:flex; align-items:baseline; gap:10px;}
-  .lap-name{font-size:13.5px; color:var(--ink-2);}
-  .lap-score{font-family:var(--font-mono); font-weight:600; font-size:16px;}
-  .lap-corners{font-family:var(--font-mono); font-size:11px; color:var(--ink-muted);}
+  .lap-name{font-size:14px; color:var(--ink-2); font-weight:500;}
+  .lap-score-wrap{display:flex; align-items:baseline; gap:7px;}
+  .lap-score{font-family:var(--font-display); font-weight:700; font-size:20px;}
+  .lap-rating{font-size:12.5px; color:var(--ink-muted);}
 
   /* ---- badges ---- */
   .badges-toggle{
@@ -103,6 +104,8 @@
     display:flex; align-items:center; gap:6px; font-family:var(--font-body);
   }
   .badges-toggle .chev{color:var(--ink-muted); font-size:11px;}
+  .badges-toggle .badges-hint{color:var(--ink-muted); font-weight:400; font-size:12.5px;}
+  .badges-toggle .badges-hint::before{content:"— "; }
   .badges-list{margin-top:12px; display:flex; flex-direction:column; gap:7px;}
   .badges-list[hidden]{display:none;}
   .badge-row{display:flex; align-items:baseline; gap:8px; font-size:13px;}
@@ -166,8 +169,8 @@
   .pedal-marks{position:absolute; inset:0; display:flex; flex-direction:column; justify-content:space-between; padding-block:6px; pointer-events:none;}
   .pedal-marks div{border-top:1px dashed var(--border); height:0;}
   .pedal-label{
-    position:absolute; top:8px; left:0; right:0; text-align:center; font-family:var(--font-mono);
-    font-size:10px; letter-spacing:0.06em; color:var(--ink-muted); z-index:2;
+    position:absolute; top:8px; left:0; right:0; text-align:center; font-family:var(--font-display);
+    font-weight:600; font-size:11px; letter-spacing:0.06em; color:var(--ink-muted); z-index:2;
   }
   .pedal-hint{font-size:12.5px; color:var(--ink-muted); line-height:1.5;}
 
@@ -183,9 +186,8 @@
     border-radius:9px; padding:11px; cursor:pointer; border:1px solid var(--border);
     background:var(--surface-2); color:var(--ink);
   }
-  .results-actions button.primary{background:var(--ink); color:var(--page); border-color:var(--ink);}
-  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .results-actions button.primary{background:var(--accent); color:var(--accent-ink);} }
-  :root[data-theme="dark"] .results-actions button.primary{background:var(--accent); color:var(--accent-ink);}
+  .results-actions button.primary{background:var(--accent); color:var(--accent-ink); border-color:var(--accent);}
+  .results-lead{text-align:center; font-size:14.5px; color:var(--ink-2); margin-top:10px;}
 </style>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 
@@ -195,25 +197,25 @@
 </div>
 
 <section class="practice">
-  <h2>Practice: replicate the brake trace</h2>
-  <p class="muted">Pick a corner, then hold the pedal and match the target's brake pressure in real time.</p>
+  <h2>Practice your braking</h2>
+  <p class="muted">Pick a corner below. You'll see a line showing when and how hard to brake — just hold the pedal and try to follow it. Mistakes are how you learn, so try as many times as you like.</p>
   <div class="corner-picker" id="corner-picker"></div>
-  <button class="btn-primary" id="start-practice">Start practice run</button>
+  <button class="btn-primary" id="start-practice">Start practice</button>
 </section>
 
 <section>
-  <h2>Session</h2>
+  <h2>Your laps</h2>
   <div id="session-list"></div>
 </section>
 
 <section>
   <button class="badges-toggle" id="badges-toggle">
-    <span>🏆</span><span id="badges-summary"></span><span class="chev" id="badges-chev">▾</span>
+    <span>🏆</span><span id="badges-summary"></span><span class="badges-hint">tap to see them</span><span class="chev" id="badges-chev">▾</span>
   </button>
   <div class="badges-list" id="badges-list" hidden></div>
 </section>
 
-<footer>Sample session from a synthetic 4-corner test lap — scoring pipeline output, not fabricated numbers. Practice-run scoring is a simplified, client-side approximation of the same model.</footer>
+<footer>This is a sample session so you can see how everything works. Practice mode scores your run the same way, right here in your browser.</footer>
 
 <div class="overlay" id="practice-overlay" hidden>
   <div class="overlay-panel">
@@ -242,6 +244,7 @@
     return "critical";
   }
   var BAND_COLOR = {good:"var(--good)", warning:"var(--warning)", serious:"var(--serious)", critical:"var(--critical)"};
+  var BAND_LABEL = {good:"Great", warning:"Good", serious:"Getting there", critical:"Needs work"};
 
   // ---------- header ----------
   function renderHeader(){
@@ -258,11 +261,13 @@
     var wrap = document.getElementById('session-list');
     wrap.innerHTML = DATA.laps.map(function(l){
       var r = l.report;
-      var corners = r.zones.map(function(z){ return z.corner_label.replace('Corner @ ','') + ' ' + z.overall_score.toFixed(0); }).join('  ·  ');
+      var b = band(r.overall_score);
       return '<div class="lap-row">' +
-        '<div class="lap-row-left"><span class="lap-name">Lap ' + l.lap_number + '</span></div>' +
-        '<div style="text-align:right"><div class="lap-score tnum" style="color:' + BAND_COLOR[band(r.overall_score)] + '">' + r.overall_score.toFixed(0) + '</div>' +
-        '<div class="lap-corners">' + corners + '</div></div>' +
+        '<span class="lap-name">Lap ' + l.lap_number + '</span>' +
+        '<div class="lap-score-wrap">' +
+          '<span class="lap-rating" style="color:' + BAND_COLOR[b] + '">' + BAND_LABEL[b] + '</span>' +
+          '<span class="lap-score tnum" style="color:' + BAND_COLOR[b] + '">' + r.overall_score.toFixed(0) + '</span>' +
+        '</div>' +
       '</div>';
     }).join('');
   }
@@ -271,7 +276,7 @@
   function renderBadges(){
     var latest = DATA.laps[DATA.laps.length - 1].xp_result;
     var earnedCount = latest.badges.filter(function(b){ return b.earned; }).length;
-    document.getElementById('badges-summary').textContent = earnedCount + ' / ' + latest.badges.length + ' badges';
+    document.getElementById('badges-summary').textContent = earnedCount + ' of ' + latest.badges.length + ' badges';
     var list = document.getElementById('badges-list');
     list.innerHTML = latest.badges.map(function(b){
       return '<div class="badge-row ' + (b.earned ? 'earned' : 'locked') + '"><span class="badge-dot"></span>' +
@@ -285,8 +290,12 @@
   }
 
   // ================= PRACTICE MODE =================
-  var corners = DATA.laps[0].report.zones.map(function(z){
-    return { label: z.corner_label, target: z.target_trace.brake };
+  var corners = DATA.laps[0].report.zones.map(function(z, i){
+    return {
+      label: 'Corner ' + (i + 1),
+      dist: z.corner_label.replace('Corner @ ', ''),
+      target: z.target_trace.brake
+    };
   });
 
   var P = {
@@ -303,10 +312,13 @@
   var overlay = document.getElementById('practice-overlay');
   var overlayBody = document.getElementById('overlay-body');
 
+  function cornerTitle(i){ return corners[i].label + ' · ' + corners[i].dist; }
+
   function renderCornerPicker(){
     var picker = document.getElementById('corner-picker');
     picker.innerHTML = corners.map(function(c,i){
-      return '<button class="corner-btn" data-i="' + i + '" aria-pressed="' + (i===P.index) + '">' + c.label + '</button>';
+      return '<button class="corner-btn" data-i="' + i + '" aria-pressed="' + (i===P.index) + '">' +
+        c.label + '<span class="corner-btn-dist">' + c.dist + '</span></button>';
     }).join('');
     Array.prototype.forEach.call(picker.querySelectorAll('.corner-btn'), function(btn){
       btn.addEventListener('click', function(){
@@ -337,8 +349,8 @@
     var i = 0;
     function show(){
       overlayBody.innerHTML =
-        '<div class="overlay-title">' + corners[P.index].label + '</div>' +
-        '<div class="overlay-sub">Get ready — hold the pedal to match the target.</div>' +
+        '<div class="overlay-title">' + cornerTitle(P.index) + '</div>' +
+        '<div class="overlay-sub">Get ready — you\'ll try to match the blue line with the pedal below.</div>' +
         '<div class="countdown-num">' + steps[i] + '</div>';
       i++;
       if (i < steps.length){
@@ -383,8 +395,8 @@
     var targetD = pathFromArray(corners[P.index].target);
 
     overlayBody.innerHTML =
-      '<div class="overlay-title">' + corners[P.index].label + '</div>' +
-      '<div class="overlay-sub">Hold and drag the pedal to match the blue target line.</div>' +
+      '<div class="overlay-title">' + cornerTitle(P.index) + '</div>' +
+      '<div class="overlay-sub">The blue line is your target. Hold the pedal and try to draw the same shape.</div>' +
       '<div class="run-chart-wrap">' +
         '<svg class="run-svg" viewBox="0 0 ' + CW + ' ' + CH + '">' +
           chartChrome() +
@@ -404,7 +416,7 @@
           '<div class="pedal-marks"><div></div><div></div><div></div></div>' +
           '<div class="pedal-fill" id="pedal-fill" style="height:0%"></div>' +
         '</div>' +
-        '<p class="pedal-hint">Press and hold anywhere on the pedal, then drag up or down — further down is more brake pressure. Release to let off.</p>' +
+        '<p class="pedal-hint">Press and hold the pedal. Push down for more brake, ease up for less. Let go to stop braking.</p>' +
       '</div>';
 
     userPathEl = document.getElementById('user-path');
@@ -530,6 +542,9 @@
     if (bpScore < 85) tips.push(bpDeltaSec > 0
       ? 'You braked ' + bpDeltaSec.toFixed(2) + 's late — try reacting a touch sooner.'
       : 'You braked ' + Math.abs(bpDeltaSec).toFixed(2) + 's early — hold off a little longer.');
+    if (ttpScore < 85) tips.push(ttpDeltaSec > 0
+      ? 'You built up to full pressure too slowly — squeeze the pedal down faster once you start braking.'
+      : 'You reached full pressure very quickly — good, just make sure it stays smooth and controlled.');
     if (peakScore < 85) tips.push(userPeak < targetPeak
       ? 'Your peak pressure was too soft (' + (userPeak*100).toFixed(0) + '% vs ' + (targetPeak*100).toFixed(0) + '%) — push harder at the top of the hit.'
       : 'Your peak pressure overshot the target (' + (userPeak*100).toFixed(0) + '% vs ' + (targetPeak*100).toFixed(0) + '%) — ease back slightly.');
@@ -550,9 +565,12 @@
       return '<li' + (positive ? ' class="positive"' : '') + '>' + t + '</li>';
     }).join('');
 
+    var LEAD = {good:"Excellent — that's really close!", warning:"Nice work — a couple of small tweaks to go.",
+      serious:"Good start — here's what to work on.", critical:"Let's see what happened."};
+
     overlayBody.innerHTML =
-      '<div class="overlay-title">' + corners[P.index].label + ' — run complete</div>' +
-      '<div class="overlay-sub">How your brake input compared to the target</div>' +
+      '<div class="overlay-title">' + cornerTitle(P.index) + ' — done</div>' +
+      '<div class="overlay-sub">Blue is the target, red is what you did.</div>' +
       '<div class="run-chart-wrap">' +
         '<svg class="run-svg" viewBox="0 0 ' + CW + ' ' + CH + '">' +
           chartChrome() +
@@ -565,6 +583,7 @@
         '</div>' +
       '</div>' +
       '<div class="results-score tnum" style="color:' + BAND_COLOR[b] + '">' + result.overall.toFixed(0) + '</div>' +
+      '<div class="results-lead">' + LEAD[b] + '</div>' +
       '<ul class="results-tips">' + tipsHtml + '</ul>' +
       '<div class="results-actions">' +
         '<button id="btn-retry">Try again</button>' +
