@@ -27,9 +27,10 @@ PROFILE_VERSION = 1
 DEFAULT_PROFILE_PATH = Path("profile.json")
 
 # --- Levels: Rookie -> Class D -> Class C -> Class B -> Class A -> Pro -----
-# 5 numbered levels per tier, 30 levels total. Cumulative XP needed to REACH
-# level n is 100 * n^2, so early levels come quickly and later ones take
-# meaningfully longer (a training-app progression curve, not a sprint).
+# 5 numbered levels per tier, 30 levels total. Level 1 requires 0 XP (everyone
+# starts there); cumulative XP needed to REACH level n is 100 * (n-1)^2, so
+# early levels come quickly and later ones take meaningfully longer (a
+# training-app progression curve, not a sprint).
 
 TIERS = ["Rookie", "Class D", "Class C", "Class B", "Class A", "Pro"]
 LEVELS_PER_TIER = 5
@@ -37,10 +38,10 @@ MAX_LEVEL = len(TIERS) * LEVELS_PER_TIER
 
 
 def xp_threshold(level: int) -> int:
-    """Cumulative XP required to REACH this level (level 0 = 0 XP)."""
-    if level <= 0:
+    """Cumulative XP required to REACH this level (level 1 = 0 XP)."""
+    if level <= 1:
         return 0
-    return 100 * level * level
+    return 100 * (level - 1) * (level - 1)
 
 
 def tier_for_level(level: int) -> str:

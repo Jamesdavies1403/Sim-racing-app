@@ -6,3 +6,4 @@ venv/
 *.ibt
 profile.json
 dashboard.html
+.pytest_cache/

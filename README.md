@@ -174,6 +174,12 @@ Each corner gets an overall score plus plain-English tips by default. Add
 to write a full JSON report (always includes the raw per-corner trace, for
 the dashboard in Step 4).
 
+`--tier` matches the product's free/paid split: `free` scores braking only
+(brake hit + trail/release — six metrics, meant for scoring against a
+personal best or a provided baseline lap); `paid` (the default) scores all
+eleven metrics across all five phases, meant for scoring against a fast
+coach lap.
+
 ### Running it
 
 ```bash
@@ -182,6 +188,9 @@ python scripts/corner_scoring.py your_session.ibt --lap 4 --target baseline.ibt 
 
 # Score two laps within the same file (e.g. vs your own personal best)
 python scripts/corner_scoring.py session.ibt --lap 4 --target-lap 2
+
+# Free-tier scoring: braking only, against a personal best/baseline
+python scripts/corner_scoring.py session.ibt --lap 4 --target-lap 2 --tier free
 
 # Full breakdown, annotated plot, and a JSON report for tooling
 python scripts/corner_scoring.py session.ibt --lap 4 --target-lap 2 --expert --plot zones.png --out report.json
@@ -275,11 +284,93 @@ Open `dashboard.html` in a browser. Running it again later with more laps
 appended continues the same profile, so the dashboard reflects ongoing
 progress rather than resetting each time.
 
-### What's next
-
 This is a sample dashboard over synthetic test data — see it at
-https://claude.ai/artifact/QQCdxgBcgqvgVGAg4q8u4w. Next up: scoring the
-rest of the corner for real .ibt sessions end-to-end, a proper apex/corner
-detector, tying practice-run results back into XP, and turning this from a
-generated HTML page into the actual desktop app (XP/badge notifications, a
-lap browser, live telemetry).
+https://claude.ai/artifact/QQCdxgBcgqvgVGAg4q8u4w.
+
+## Step 5: Tests
+
+The whole pipeline (`brake_trace.py`, `corner_scoring.py`, `progression.py`,
+`dashboard.py`) has an automated test suite under [`tests/`](tests), built
+on [`tests/ibt_builder.py`](tests/ibt_builder.py) — a from-scratch,
+dependency-free writer for the `.ibt` binary format (verified against
+`pyirsdk`'s own source), so tests exercise the real file-parsing path
+instead of mocking it.
+
+```bash
+pip install -r requirements-dev.txt
+pytest -v
+```
+
+CI ([`.github/workflows/tests.yml`](.github/workflows/tests.yml)) runs this
+on every push and pull request.
+
+All of this project's testing so far — this suite included — has been
+against **synthetic** `.ibt` fixtures, because no real recorded iRacing
+session has been run through it yet. That's the single most important
+thing to do next; see below.
+
+## Roadmap
+
+Roughly in priority order:
+
+### Do this first
+- **Run it against a real recorded session.** Record a lap or two in
+  iRacing (or find a `.ibt` under `Documents\iRacing\telemetry\`) and run
+  it through Steps 1–4 end to end. Everything so far has only been
+  validated against hand-built synthetic fixtures (see `tests/ibt_builder.py`)
+  — real telemetry is noisier, may have channels this doesn't expect, and
+  is the real test of whether zone detection and scoring hold up. Whatever
+  breaks first is the next task.
+
+### Correctness & robustness
+- Replace the apex heuristic (lowest speed in a window after brake
+  release) with a real corner/apex detector — steering angle or lateral-G
+  data would let it find the true geometric apex instead of assuming it's
+  near the brake zone. `brake_trace.py` would need to extract a
+  `SteeringWheelAngle` or `LatAccel` channel first.
+- Handle incidents and off-tracks: a spin or an off-track excursion mid-lap
+  currently just looks like weird brake/speed data and would produce a
+  confusing score. Detect `LapDist` discontinuities or an `OnPitRoad`/
+  incident channel and either skip or flag the affected corners.
+- Guard against mismatched comparisons: nothing currently checks that the
+  user lap and target lap are even the same track/car. Compare lap length
+  (`max(LapDist)`) as a sanity check before scoring, and warn if they
+  differ.
+- Decide what happens with more corners than a target has (or vice versa)
+  on a genuinely different track layout — right now unmatched zones are
+  silently dropped from the score, which is fine for "same track, off day"
+  but not for "wrong track entirely."
+
+### Product completeness (per the original brief)
+- **Baseline lap library**: a way to import/manage multiple `.ibt` files
+  and pick "personal best" automatically (the free tier needs this —
+  right now the user must name the exact file/lap manually).
+- **Coach laps** (paid tier): some source of "fast coach lap" `.ibt`
+  files per track/car combo — this is a content problem as much as a code
+  one.
+- Feed practice-run results back into XP/badges (currently practice mode
+  is scored but doesn't touch the profile at all).
+- More badge variety and a few more levels' worth of milestone content as
+  real usage data comes in.
+
+### Turning this into an actual desktop app
+Right now this is a set of CLI scripts plus a generated static HTML page —
+not yet the "desktop app" from the original brief. In rough order:
+1. Auto-detect the iRacing telemetry folder (`Documents\iRacing\telemetry\`
+   on Windows) and list sessions instead of requiring a file path.
+2. A real UI shell (Tauri or Electron would let the existing HTML/JS
+   dashboard become the UI directly, with Python running underneath via a
+   sidecar process or a small local HTTP server; PyQt/PySide is the
+   alternative if the UI gets rebuilt in Python instead).
+3. Live mode: iRacing's SDK also exposes telemetry over shared memory while
+   a session is running — a live brake-pressure overlay *during* a real
+   session (not just the after-the-fact `.ibt` file and the practice
+   trainer) would be a genuinely different, higher-value feature.
+4. Packaging: a installer/build step so this is a double-click app for a
+   non-technical user, not "clone the repo and run Python scripts."
+
+### Nice-to-haves
+- A lap browser / session history view in the dashboard.
+- Exporting a shareable "coach report" (PDF or image) for a single lap.
+- Multi-user profiles if this is ever used by more than one driver on the
+  same machine.

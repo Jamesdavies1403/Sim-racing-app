@@ -35,12 +35,23 @@ combined into an overall per-corner score and plain-English tips. Use
 (always includes the raw per-corner trace, for a future detailed-trace UI),
 and --plot to save an annotated brake-trace comparison image.
 
+--tier controls which of those eleven metrics count, matching the product's
+free/paid split:
+    free  scores braking only: brake point, time to peak, peak pressure,
+          release start, smoothness, release vs apex. Meant for scoring
+          against a personal best or a provided baseline lap.
+    paid  scores the whole corner (all eleven metrics, default). Meant for
+          scoring against a fast coach lap.
+
 Usage:
     # Compare lap 4 of your session against lap 2 of a baseline/coach lap
     python corner_scoring.py your_session.ibt --lap 4 --target baseline.ibt --target-lap 2
 
     # Compare two laps within the same file (e.g. vs your own personal best)
     python corner_scoring.py session.ibt --lap 4 --target-lap 2
+
+    # Free-tier scoring: braking only, against a personal best/baseline
+    python corner_scoring.py session.ibt --lap 4 --target-lap 2 --tier free
 
     # Full numeric breakdown + annotated plot + JSON report for tooling
     python corner_scoring.py session.ibt --lap 4 --target-lap 2 --expert --plot zones.png --out report.json
@@ -118,6 +129,17 @@ METRIC_WEIGHTS = {
 
 TIP_SCORE_THRESHOLD = 90.0  # only surface a tip when a metric scores below this
 
+# --- Tiers ------------------------------------------------------------------
+# Free tier: score braking only (brake hit + trail/release), against a
+# personal best or a provided baseline lap. Paid tier: score the whole
+# corner (entry, brake hit, release, apex, exit), against a fast coach lap.
+TIERS = ("free", "paid")
+DEFAULT_TIER = "paid"
+FREE_TIER_METRIC_KEYS = {
+    "brake_point", "time_to_peak", "peak_pressure",
+    "release_start", "smoothness", "release_vs_apex",
+}
+
 
 @dataclass
 class BrakeZone:
@@ -175,6 +197,7 @@ class ZoneScore:
 class LapScoreReport:
     user_label: str
     target_label: str
+    tier: str
     zone_scores: list
     unmatched_user_zones: list
     overall_score: float
@@ -364,7 +387,7 @@ def _score(diff: float, tolerance: float, penalty: float) -> float:
     return max(0.0, 100.0 - penalty * (d - tolerance))
 
 
-def score_zone(user: ZoneFeatures, target: ZoneFeatures) -> ZoneScore:
+def score_zone(user: ZoneFeatures, target: ZoneFeatures, tier: str = DEFAULT_TIER) -> ZoneScore:
     metrics = [
         MetricScore(
             "entry_speed", "entry", "Entry speed", "km/h",
@@ -448,6 +471,9 @@ def score_zone(user: ZoneFeatures, target: ZoneFeatures) -> ZoneScore:
         ),
     ]
 
+    if tier == "free":
+        metrics = [m for m in metrics if m.key in FREE_TIER_METRIC_KEYS]
+
     total_weight = sum(METRIC_WEIGHTS[m.key] for m in metrics)
     overall = sum(m.score * METRIC_WEIGHTS[m.key] for m in metrics) / total_weight
 
@@ -460,8 +486,8 @@ def generate_tips(user: ZoneFeatures, metrics: list) -> list:
     by_key = {m.key: m for m in metrics}
     tips = []
 
-    es = by_key["entry_speed"]
-    if es.score < TIP_SCORE_THRESHOLD:
+    es = by_key.get("entry_speed")
+    if es is not None and es.score < TIP_SCORE_THRESHOLD:
         if es.delta < 0:
             tips.append(
                 f"You carry {abs(es.delta):.1f} km/h less speed into this corner than the target — "
@@ -473,8 +499,8 @@ def generate_tips(user: ZoneFeatures, metrics: list) -> list:
                 "make sure you're still hitting the brake point and apex."
             )
 
-    bp = by_key["brake_point"]
-    if bp.score < TIP_SCORE_THRESHOLD:
+    bp = by_key.get("brake_point")
+    if bp is not None and bp.score < TIP_SCORE_THRESHOLD:
         if bp.delta > 0:
             tips.append(
                 f"You brake {bp.delta:.0f}m later than the target here — good if you're carrying more "
@@ -486,8 +512,8 @@ def generate_tips(user: ZoneFeatures, metrics: list) -> list:
                 "longer to carry more speed into the corner."
             )
 
-    ttp = by_key["time_to_peak"]
-    if ttp.score < TIP_SCORE_THRESHOLD:
+    ttp = by_key.get("time_to_peak")
+    if ttp is not None and ttp.score < TIP_SCORE_THRESHOLD:
         if ttp.delta > 0:
             tips.append(
                 f"It takes you {ttp.user_value:.2f}s to reach peak pressure vs {ttp.target_value:.2f}s "
@@ -499,8 +525,8 @@ def generate_tips(user: ZoneFeatures, metrics: list) -> list:
                 "hit, just make sure it's controlled."
             )
 
-    pp = by_key["peak_pressure"]
-    if pp.score < TIP_SCORE_THRESHOLD:
+    pp = by_key.get("peak_pressure")
+    if pp is not None and pp.score < TIP_SCORE_THRESHOLD:
         if pp.delta < 0:
             tips.append(
                 f"Your peak brake pressure ({pp.user_value:.0%}) is lower than the target's "
@@ -512,15 +538,15 @@ def generate_tips(user: ZoneFeatures, metrics: list) -> list:
                 f"{pp.target_value:.0%}) — fine if it's controlled, but watch for lockups."
             )
 
-    rs = by_key["release_start"]
-    if rs.score < TIP_SCORE_THRESHOLD:
+    rs = by_key.get("release_start")
+    if rs is not None and rs.score < TIP_SCORE_THRESHOLD:
         tips.append(
             f"You start releasing the brake {abs(rs.delta):.0f}m "
             f"{'later' if rs.delta > 0 else 'earlier'} than the target."
         )
 
-    sm = by_key["smoothness"]
-    if sm.score < TIP_SCORE_THRESHOLD:
+    sm = by_key.get("smoothness")
+    if sm is not None and sm.score < TIP_SCORE_THRESHOLD:
         if user.reversal_count > 0:
             tips.append(
                 f"You re-pressed the brake {user.reversal_count} time(s) while trailing off — try one "
@@ -529,8 +555,8 @@ def generate_tips(user: ZoneFeatures, metrics: list) -> list:
         else:
             tips.append("Your brake release is a little jerky here — aim for a smoother, more even taper.")
 
-    rva = by_key["release_vs_apex"]
-    if rva.score < TIP_SCORE_THRESHOLD:
+    rva = by_key.get("release_vs_apex")
+    if rva is not None and rva.score < TIP_SCORE_THRESHOLD:
         if rva.delta > 0:
             tips.append(
                 "You're trailing the brake past the apex more than the target — try releasing a touch "
@@ -542,8 +568,8 @@ def generate_tips(user: ZoneFeatures, metrics: list) -> list:
                 "able to carry the brake a little deeper here."
             )
 
-    aps = by_key["apex_speed"]
-    if aps.score < TIP_SCORE_THRESHOLD:
+    aps = by_key.get("apex_speed")
+    if aps is not None and aps.score < TIP_SCORE_THRESHOLD:
         if aps.delta < 0:
             tips.append(
                 f"Your apex speed is {abs(aps.delta):.1f} km/h slower than the target's — there may be "
@@ -555,15 +581,15 @@ def generate_tips(user: ZoneFeatures, metrics: list) -> list:
                 "just watch for running out of track on exit."
             )
 
-    tp = by_key["throttle_pickup"]
-    if tp.score < TIP_SCORE_THRESHOLD:
+    tp = by_key.get("throttle_pickup")
+    if tp is not None and tp.score < TIP_SCORE_THRESHOLD:
         tips.append(
             f"You get back on throttle {abs(tp.delta):.0f}m "
             f"{'later' if tp.delta > 0 else 'earlier'} than the target."
         )
 
-    ttf = by_key["time_to_full_throttle"]
-    if ttf.score < TIP_SCORE_THRESHOLD:
+    ttf = by_key.get("time_to_full_throttle")
+    if ttf is not None and ttf.score < TIP_SCORE_THRESHOLD:
         if ttf.delta > 0:
             tips.append(
                 f"It takes you {ttf.user_value:.2f}s to reach full throttle vs {ttf.target_value:.2f}s for "
@@ -575,8 +601,8 @@ def generate_tips(user: ZoneFeatures, metrics: list) -> list:
                 "sure the rear stays hooked up."
             )
 
-    exsm = by_key["exit_smoothness"]
-    if exsm.score < TIP_SCORE_THRESHOLD:
+    exsm = by_key.get("exit_smoothness")
+    if exsm is not None and exsm.score < TIP_SCORE_THRESHOLD:
         if user.exit_reversal_count > 0:
             tips.append(
                 f"You lifted off the throttle {user.exit_reversal_count} time(s) on the way to full "
@@ -591,17 +617,21 @@ def generate_tips(user: ZoneFeatures, metrics: list) -> list:
     return tips
 
 
-def score_lap(user_lap: LapData, target_lap: LapData) -> LapScoreReport:
+def score_lap(user_lap: LapData, target_lap: LapData, tier: str = DEFAULT_TIER) -> LapScoreReport:
+    if tier not in TIERS:
+        raise ValueError(f"tier must be one of {TIERS}, got {tier!r}")
+
     user_zones = extract_all_zones(user_lap)
     target_zones = extract_all_zones(target_lap)
     matched, unmatched = match_zones(user_zones, target_zones)
 
-    zone_scores = [score_zone(u, t) for u, t in matched]
+    zone_scores = [score_zone(u, t, tier=tier) for u, t in matched]
     overall = sum(zs.overall_score for zs in zone_scores) / len(zone_scores) if zone_scores else 0.0
 
     return LapScoreReport(
         user_label="user",
         target_label="target",
+        tier=tier,
         zone_scores=zone_scores,
         unmatched_user_zones=unmatched,
         overall_score=overall,
@@ -621,7 +651,7 @@ PHASE_LABELS = {
 
 
 def print_report(report: LapScoreReport, expert: bool) -> None:
-    print(f"\nCorner score: {report.overall_score:.0f}/100 "
+    print(f"\n[{report.tier} tier] Corner score: {report.overall_score:.0f}/100 "
           f"across {len(report.zone_scores)} matched corner(s)")
 
     for zs in report.zone_scores:
@@ -653,6 +683,7 @@ def report_to_dict(report: LapScoreReport, user_label: str, target_label: str) -
     return {
         "user_lap": user_label,
         "target_lap": target_label,
+        "tier": report.tier,
         "overall_score": report.overall_score,
         "zones": [
             {
@@ -718,6 +749,13 @@ def parse_args(argv=None) -> argparse.Namespace:
         "Defaults to the same file as --lap.",
     )
     parser.add_argument("--target-lap", type=int, required=True, help="Lap number to score against")
+    parser.add_argument(
+        "--tier",
+        choices=TIERS,
+        default=DEFAULT_TIER,
+        help="'free' scores braking only (brake hit + trail/release); "
+        "'paid' scores the whole corner (entry, brake hit, release, apex, exit). Default: paid.",
+    )
     parser.add_argument("--expert", action="store_true", help="Print the full numeric metric breakdown per corner")
     parser.add_argument("--plot", type=Path, default=None, help="Save an annotated brake/throttle comparison image")
     parser.add_argument("--out", type=Path, default=None, help="Write the full scoring report as JSON")
@@ -757,7 +795,7 @@ def main(argv=None) -> int:
     user_label = f"{args.file.name} - Lap {args.lap}"
     target_label = f"{target_path.name} - Lap {args.target_lap}"
 
-    report = score_lap(user_lap, target_lap)
+    report = score_lap(user_lap, target_lap, tier=args.tier)
     if not report.zone_scores:
         print("No matching corners were found between these two laps.", file=sys.stderr)
         return 1
